@@ -1,1 +1,30 @@
-{"name":"astra-farm","private":true,"type":"module","workspaces":["packages/shared","apps/server","apps/client"],"engines":{"node":">=24"},"scripts":{"dev":"concurrently -k \"npm run dev -w apps/server\" \"npm run dev -w apps/client\"","test":"vitest run","typecheck":"tsc --noEmit","build":"npm run typecheck && npm run build -w apps/client && npm run build -w apps/server","start":"node apps/server/dist/apps/server/src/index.js","test:e2e":"playwright test"},"devDependencies":{"typescript":"^5.9.3","vitest":"^3.2.4","tsx":"^4.20.6","@types/node":"^24.7.0","concurrently":"^9.2.1","@playwright/test":"^1.56.0"}}
+{
+  "name": "astra-farm",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/shared",
+    "apps/server",
+    "apps/client"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w apps/server\" \"npm run dev -w apps/client\"",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && npm run build -w apps/client && npm run build -w apps/server",
+    "start": "node apps/server/dist/apps/server/src/index.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.7.0",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

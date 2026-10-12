@@ -1,12 +1,123 @@
-import {it,expect} from 'vitest';import {Client,Room} from 'colyseus.js';import {openStore} from '../src/store.js';import {startServer} from '../src/index.js';
-import {createWorld,addPlayer} from '../../../packages/shared/src/world.js';import {issueSession} from '../src/auth.js';import type {World} from '../../../packages/shared/src/types.js';
-async function until(fn:()=>boolean){const end=Date.now()+6000;while(!fn()){if(Date.now()>end)throw Error('timeout');await new Promise(r=>setTimeout(r,20))}}
-it('synchronizes two clients, rejects outsiders, persists deduplication and pauses',async()=>{const store=openStore(':memory:');const w=createWorld('farm');for(const id of ['a','b','c']){store.db.prepare('INSERT INTO accounts VALUES(?,?,?)').run(id,id,'hash');if(id!=='c'){addPlayer(w,id,id);}}store.saveWorld(w);for(const id of ['a','b'])store.db.prepare('INSERT INTO members VALUES(?,?)').run(id,'farm');const running=await startServer({store,port:0,host:'127.0.0.1'});const origin=`http://127.0.0.1:${running.port}`;const sdk=(id:string)=>new Client(origin,{headers:{cookie:`astra_session=${issueSession(store,id)}`,origin}});let a:Room|undefined,b:Room|undefined;
- try{a=await sdk('a').joinOrCreate('farm',{worldId:'farm'});let wa:World|undefined,wb:World|undefined;const results:{ok:boolean;id:string;error?:string}[]=[];a.onMessage('world',(s:World)=>wa=s);a.onMessage('result',(r)=>results.push(r));a.onMessage('status',()=>{});b=await sdk('b').joinOrCreate('farm',{worldId:'farm'});b.onMessage('world',(s:World)=>wb=s);b.onMessage('status',()=>{});await until(()=>!!wa&&!!wb);expect(a.roomId).toBe(b.roomId);await expect(sdk('c').joinOrCreate('farm',{worldId:'farm'})).rejects.toThrow();await expect(sdk('a').joinOrCreate('farm',{worldId:'farm'})).rejects.toThrow();
- const ammo=wa!.players.a.inventory.ammo;a.send('command',{id:'craft-once',type:'craft',payload:{}});await until(()=>wa!.players.a.inventory.ammo===ammo+12&&wb!.players.a.inventory.ammo===ammo+12);a.send('command',{id:'craft-once',type:'craft',payload:{}});await until(()=>results.some(r=>r.id==='craft-once'&&!r.ok));expect(wb!.players.a.inventory.ammo).toBe(ammo+12);
- store.db.exec("CREATE TRIGGER fail_save BEFORE UPDATE ON worlds BEGIN SELECT RAISE(ABORT, 'disk unavailable'); END;");a.send('command',{id:'failed',type:'craft',payload:{}});await until(()=>results.some(r=>r.id==='failed'&&!r.ok));expect(wa!.players.a.inventory.ammo).toBe(ammo+12);store.db.exec('DROP TRIGGER fail_save');await until(()=>running.rooms.get('farm')?.storageError===false);
- await a.leave();a=undefined;await b.leave();b=undefined;await until(()=>running.rooms.get('farm')?.connected.size===0);const remaining=store.loadWorld('farm')!.remainingMs;await new Promise(r=>setTimeout(r,200));expect(store.loadWorld('farm')!.remainingMs).toBe(remaining);a=await sdk('a').joinOrCreate('farm',{worldId:'farm'});a.onMessage('world',(s:World)=>wa=s);a.onMessage('status',()=>{});await until(()=>wa!.players.a.inventory.ammo===ammo+12);expect(store.hasCommand('farm','a','craft-once')).toBe(true);
- }finally{if(a)await a.leave();if(b)await b.leave();await running.stop();store.close()}
+import { it, expect } from "vitest";
+import { Client, Room } from "colyseus.js";
+import { openStore } from "../src/store.js";
+import { startServer } from "../src/index.js";
+import { createWorld, addPlayer } from "../../../packages/shared/src/world.js";
+import { issueSession } from "../src/auth.js";
+import type { World } from "../../../packages/shared/src/types.js";
+async function until(fn: () => boolean) {
+  const end = Date.now() + 6000;
+  while (!fn()) {
+    if (Date.now() > end) throw Error("timeout");
+    await new Promise((r) => setTimeout(r, 20));
+  }
+}
+it("synchronizes two clients, rejects outsiders, persists deduplication and pauses", async () => {
+  const store = openStore(":memory:");
+  const w = createWorld("farm");
+  for (const id of ["a", "b", "c"]) {
+    store.db.prepare("INSERT INTO accounts VALUES(?,?,?)").run(id, id, "hash");
+    if (id !== "c") {
+      addPlayer(w, id, id);
+    }
+  }
+  store.saveWorld(w);
+  for (const id of ["a", "b"])
+    store.db.prepare("INSERT INTO members VALUES(?,?)").run(id, "farm");
+  const running = await startServer({ store, port: 0, host: "127.0.0.1" });
+  const origin = `http://127.0.0.1:${running.port}`;
+  const sdk = (id: string) =>
+    new Client(origin, {
+      headers: { cookie: `astra_session=${issueSession(store, id)}`, origin },
+    });
+  let a: Room | undefined, b: Room | undefined;
+  try {
+    a = await sdk("a").joinOrCreate("farm", { worldId: "farm" });
+    let wa: World | undefined, wb: World | undefined;
+    const results: { ok: boolean; id: string; error?: string }[] = [];
+    a.onMessage("world", (s: World) => (wa = s));
+    a.onMessage("result", (r) => results.push(r));
+    a.onMessage("status", () => {});
+    b = await sdk("b").joinOrCreate("farm", { worldId: "farm" });
+    b.onMessage("world", (s: World) => (wb = s));
+    b.onMessage("status", () => {});
+    await until(() => !!wa && !!wb);
+    expect(a.roomId).toBe(b.roomId);
+    await expect(
+      sdk("c").joinOrCreate("farm", { worldId: "farm" }),
+    ).rejects.toThrow();
+    await expect(
+      sdk("a").joinOrCreate("farm", { worldId: "farm" }),
+    ).rejects.toThrow();
+    const ammo = wa!.players.a.inventory.ammo;
+    a.send("command", { id: "craft-once", type: "craft", payload: {} });
+    await until(
+      () =>
+        wa!.players.a.inventory.ammo === ammo + 12 &&
+        wb!.players.a.inventory.ammo === ammo + 12,
+    );
+    a.send("command", { id: "craft-once", type: "craft", payload: {} });
+    await until(() => results.some((r) => r.id === "craft-once" && !r.ok));
+    expect(wb!.players.a.inventory.ammo).toBe(ammo + 12);
+    store.db.exec(
+      "CREATE TRIGGER fail_save BEFORE UPDATE ON worlds BEGIN SELECT RAISE(ABORT, 'disk unavailable'); END;",
+    );
+    a.send("command", { id: "failed", type: "craft", payload: {} });
+    await until(() => results.some((r) => r.id === "failed" && !r.ok));
+    expect(wa!.players.a.inventory.ammo).toBe(ammo + 12);
+    store.db.exec("DROP TRIGGER fail_save");
+    await until(() => running.rooms.get("farm")?.storageError === false);
+    await a.leave();
+    a = undefined;
+    await b.leave();
+    b = undefined;
+    await until(() => running.rooms.get("farm")?.connected.size === 0);
+    const remaining = store.loadWorld("farm")!.remainingMs;
+    await new Promise((r) => setTimeout(r, 200));
+    expect(store.loadWorld("farm")!.remainingMs).toBe(remaining);
+    a = await sdk("a").joinOrCreate("farm", { worldId: "farm" });
+    a.onMessage("world", (s: World) => (wa = s));
+    a.onMessage("status", () => {});
+    await until(() => wa!.players.a.inventory.ammo === ammo + 12);
+    expect(store.hasCommand("farm", "a", "craft-once")).toBe(true);
+  } finally {
+    if (a) await a.leave();
+    if (b) await b.leave();
+    await running.stop();
+    store.close();
+  }
 });
 
-it('restores persisted simulation after a real server restart',async()=>{const store=openStore(':memory:');store.db.prepare('INSERT INTO accounts VALUES(?,?,?)').run('a','Ana','hash');const w=createWorld('restart');addPlayer(w,'a','Ana');w.remainingMs=42000;w.players.a.inventory.ammo=77;store.saveWorld(w);store.db.prepare('INSERT INTO members VALUES(?,?)').run('a','restart');let server=await startServer({store,port:0,host:'127.0.0.1'});await server.stop();server=await startServer({store,port:0,host:'127.0.0.1'});const origin=`http://127.0.0.1:${server.port}`;let room:Room|undefined;try{room=await new Client(origin,{headers:{origin,cookie:`astra_session=${issueSession(store,'a')}`}}).joinOrCreate('farm',{worldId:'restart'});let state:World|undefined;room.onMessage('world',(w:World)=>state=w);room.onMessage('status',()=>{});await until(()=>!!state);expect(state!.players.a.inventory.ammo).toBe(77);expect(state!.remainingMs).toBeLessThanOrEqual(42000);expect(state!.remainingMs).toBeGreaterThan(41000)}finally{if(room)await room.leave();await server.stop();store.close()}});
+it("restores persisted simulation after a real server restart", async () => {
+  const store = openStore(":memory:");
+  store.db
+    .prepare("INSERT INTO accounts VALUES(?,?,?)")
+    .run("a", "Ana", "hash");
+  const w = createWorld("restart");
+  addPlayer(w, "a", "Ana");
+  w.remainingMs = 42000;
+  w.players.a.inventory.ammo = 77;
+  store.saveWorld(w);
+  store.db.prepare("INSERT INTO members VALUES(?,?)").run("a", "restart");
+  let server = await startServer({ store, port: 0, host: "127.0.0.1" });
+  await server.stop();
+  server = await startServer({ store, port: 0, host: "127.0.0.1" });
+  const origin = `http://127.0.0.1:${server.port}`;
+  let room: Room | undefined;
+  try {
+    room = await new Client(origin, {
+      headers: { origin, cookie: `astra_session=${issueSession(store, "a")}` },
+    }).joinOrCreate("farm", { worldId: "restart" });
+    let state: World | undefined;
+    room.onMessage("world", (w: World) => (state = w));
+    room.onMessage("status", () => {});
+    await until(() => !!state);
+    expect(state!.players.a.inventory.ammo).toBe(77);
+    expect(state!.remainingMs).toBeLessThanOrEqual(42000);
+    expect(state!.remainingMs).toBeGreaterThan(41000);
+  } finally {
+    if (room) await room.leave();
+    await server.stop();
+    store.close();
+  }
+});
