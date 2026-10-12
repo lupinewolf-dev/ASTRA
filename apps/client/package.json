@@ -1,0 +1,1 @@
+{"name":"@astra/client","private":true,"type":"module","scripts":{"test":"vitest run test","dev":"vite --host 0.0.0.0","build":"vite build"},"dependencies":{"phaser":"^3.90.0","colyseus.js":"^0.16.19"},"devDependencies":{"vite":"^7.1.9"}}
