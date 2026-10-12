@@ -18,7 +18,7 @@ async function start(user: User) {
   const ui = createHud(root, user, conn, controls);
   conn.onWorld = (w) => ui.render(w);
   game = new Phaser.Game({
-    type: Phaser.AUTO,
+    type: Phaser.CANVAS,
     parent: "game-canvas",
     backgroundColor: "#253e32",
     scale: {
@@ -37,6 +37,12 @@ async function start(user: User) {
     window.astraTest = {
       world: () => conn.world,
       playerId: user.id,
+      diagnostics: () => ({
+        fps: game!.loop.actualFps,
+        visible: document.visibilityState,
+        move: controls.move,
+        active: controls.canSend,
+      }),
       screenPoint: (x, y) => {
         const iso = { x: (x - y) * 32, y: (x + y) * 16 };
         const camera = game!.scene.getScene("farm").cameras.main;
@@ -44,7 +50,9 @@ async function start(user: User) {
           x:
             (iso.x - camera.scrollX - camera.width / 2) * camera.zoom +
             camera.width / 2,
-          y: iso.y - camera.scrollY,
+          y:
+            (iso.y - camera.scrollY - camera.height / 2) * camera.zoom +
+            camera.height / 2,
         };
       },
     };

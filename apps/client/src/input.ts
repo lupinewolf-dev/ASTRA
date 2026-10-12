@@ -1,4 +1,36 @@
 export class InputState {
+  private keys = new Set<string>();
+  pressKey(code: string) {
+    if (
+      !this.canSend ||
+      ![
+        "KeyW",
+        "KeyA",
+        "KeyS",
+        "KeyD",
+        "ArrowUp",
+        "ArrowLeft",
+        "ArrowDown",
+        "ArrowRight",
+      ].includes(code)
+    )
+      return;
+    this.keys.add(code);
+    this.keyboardMove();
+  }
+  releaseKey(code: string) {
+    if (this.keys.delete(code)) this.keyboardMove();
+  }
+  private keyboardMove() {
+    const has = (a: string, b: string) => this.keys.has(a) || this.keys.has(b);
+    const dx =
+        Number(has("KeyD", "ArrowRight")) - Number(has("KeyA", "ArrowLeft")),
+      dy = Number(has("KeyS", "ArrowDown")) - Number(has("KeyW", "ArrowUp"));
+    const x = dx / 2 + dy,
+      y = dy - dx / 2,
+      length = Math.hypot(x, y);
+    this.move = length ? { x: x / length, y: y / length } : { x: 0, y: 0 };
+  }
   connected = false;
   menu = false;
   move = { x: 0, y: 0 };
@@ -16,6 +48,7 @@ export class InputState {
     this.firing = false;
   }
   blur() {
+    this.keys.clear();
     this.move = { x: 0, y: 0 };
     this.releaseAim();
   }

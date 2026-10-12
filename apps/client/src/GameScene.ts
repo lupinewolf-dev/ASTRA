@@ -14,8 +14,6 @@ export class GameScene extends Phaser.Scene {
   private ground!: Phaser.GameObjects.Graphics;
   private objects!: Phaser.GameObjects.Graphics;
   private labels: Phaser.GameObjects.Text[] = [];
-  private keys!: Record<string, Phaser.Input.Keyboard.Key>;
-  private elapsed = 0;
   private cursor: { x: number; y: number } | null = null;
   private cleanups: (() => void)[] = [];
   constructor(
@@ -30,9 +28,6 @@ export class GameScene extends Phaser.Scene {
     this.ground = this.add.graphics();
     this.objects = this.add.graphics();
     this.cameras.main.setBackgroundColor("#253e32");
-    this.keys = this.input.keyboard!.addKeys(
-      "W,A,S,D,UP,DOWN,LEFT,RIGHT",
-    ) as Record<string, Phaser.Input.Keyboard.Key>;
     this.paintGround();
     this.input.on("pointermove", (p: Phaser.Input.Pointer) =>
       this.pointer(p, false),
@@ -47,7 +42,6 @@ export class GameScene extends Phaser.Scene {
     this.input.on("pointerupoutside", () => this.controls.releaseAim());
     const blur = () => {
       this.controls.blur();
-      this.keys && Object.values(this.keys).forEach((k) => k.reset());
       this.conn.send("aim", { ...this.controls.aim, firing: false });
       this.conn.send("move", { x: 0, y: 0 });
     };
@@ -60,6 +54,49 @@ export class GameScene extends Phaser.Scene {
       () => window.removeEventListener("blur", blur),
       () => document.removeEventListener("visibilitychange", visibility),
     );
+    const sendInputs = () => {
+      if (!this.controls.connected) return;
+      const s = this.controls.snapshot();
+      this.conn.send("move", s.move);
+      this.conn.send("aim", { ...s.aim, firing: s.firing && !this.ui.build });
+    };
+    const keydown = (e: KeyboardEvent) => {
+      if (
+        e.repeat ||
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLSelectElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+      if (
+        [
+          "KeyW",
+          "KeyA",
+          "KeyS",
+          "KeyD",
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+        ].includes(e.code)
+      ) {
+        if (this.controls.canSend) e.preventDefault();
+        this.controls.pressKey(e.code);
+        sendInputs();
+      }
+    };
+    const keyup = (e: KeyboardEvent) => {
+      this.controls.releaseKey(e.code);
+      sendInputs();
+    };
+    window.addEventListener("keydown", keydown);
+    window.addEventListener("keyup", keyup);
+    const inputTimer = window.setInterval(sendInputs, 100);
+    this.cleanups.push(() => {
+      window.removeEventListener("keydown", keydown);
+      window.removeEventListener("keyup", keyup);
+      window.clearInterval(inputTimer);
+    });
     this.setupPad("move-pad", false);
     this.setupPad("aim-pad", true);
     this.events.once("shutdown", () => this.cleanups.forEach((f) => f()));
@@ -151,30 +188,6 @@ export class GameScene extends Phaser.Scene {
     const w = this.conn.world,
       p = w?.players[this.user.id];
     if (!w || !p) return;
-    const k = this.keys;
-    if (this.controls.canSend) {
-      const dx =
-          Number(k.D.isDown || k.RIGHT.isDown) -
-          Number(k.A.isDown || k.LEFT.isDown),
-        dy =
-          Number(k.S.isDown || k.DOWN.isDown) -
-          Number(k.W.isDown || k.UP.isDown);
-      if (dx || dy) {
-        const map = fromIso(dx * 32, dy * 32),
-          len = Math.hypot(map.x, map.y);
-        this.controls.move = { x: map.x / len, y: map.y / len };
-      } else if (!matchMedia("(pointer: coarse)").matches)
-        this.controls.move = { x: 0, y: 0 };
-    }
-    this.elapsed += dt;
-    if (this.elapsed >= 100) {
-      this.elapsed = 0;
-      const s = this.controls.snapshot();
-      if (this.controls.connected) {
-        this.conn.send("move", s.move);
-        this.conn.send("aim", { ...s.aim, firing: s.firing && !this.ui.build });
-      }
-    }
     const iso = toIso(p.x, p.y),
       cam = this.cameras.main;
     const compact = this.scale.width < 900;
@@ -244,20 +257,28 @@ export class GameScene extends Phaser.Scene {
   private paintWorld(w: World) {
     const g = this.objects;
     g.clear();
-    for (const label of this.labels) label.destroy();
-    this.labels = [];
+    let labelIndex = 0;
     const jobs: { depth: number; draw: () => void }[] = [];
     const label = (x: number, y: number, text: string, color = "#e7e5c9") => {
-      const t = this.add
-        .text(x, y, text, {
-          fontFamily: "system-ui",
-          fontSize: "11px",
-          color,
-          backgroundColor: "#20352bd9",
-          padding: { x: 5, y: 3 },
-        })
-        .setOrigin(0.5);
-      this.labels.push(t);
+      let t = this.labels[labelIndex];
+      if (!t) {
+        t = this.add
+          .text(x, y, text, {
+            fontFamily: "system-ui",
+            fontSize: "11px",
+            color,
+            backgroundColor: "#20352bd9",
+            padding: { x: 5, y: 3 },
+          })
+          .setOrigin(0.5);
+        this.labels.push(t);
+      } else {
+        if (t.text !== text) t.setText(text);
+        if (t.style.color !== color) t.setColor(color);
+        t.setPosition(x, y);
+        t.setVisible(true);
+      }
+      labelIndex++;
     };
     for (const c of w.crops) {
       const p = toIso(c.x, c.y);
@@ -504,6 +525,8 @@ export class GameScene extends Phaser.Scene {
       });
     }
     jobs.sort((a, b) => a.depth - b.depth).forEach((j) => j.draw());
+    for (let i = labelIndex; i < this.labels.length; i++)
+      this.labels[i].setVisible(false);
     for (const s of w.shots) {
       const a = toIso(s.x, s.y),
         b = toIso(s.toX, s.toY);
