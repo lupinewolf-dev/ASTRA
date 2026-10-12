@@ -183,6 +183,36 @@ export function farmRoomClass(
       }
     }
     private advance(dt: number) {
+      try {
+        for (const client of [...this.clients]) {
+          const data = client.userData as
+            | { id: string; session: string }
+            | undefined;
+          if (!data) continue;
+          const valid = store.db
+            .prepare(
+              "SELECT 1 FROM sessions WHERE token=? AND account_id=? AND expires>?",
+            )
+            .get(data.session, data.id, Date.now());
+          if (!valid) {
+            this.connected.delete(client.sessionId);
+            const player = this.world.players[data.id];
+            if (player) {
+              player.move = { x: 0, y: 0 };
+              player.firing = false;
+            }
+            client.leave(4001);
+          }
+        }
+      } catch {
+        this.storageError = true;
+        this.broadcast("status", {
+          saving: false,
+          error: "No se pudo comprobar la sesión; partida pausada.",
+        });
+        return;
+      }
+
       if (this.storageError) {
         this.recoveryMs += dt;
         if (this.recoveryMs >= 1000) {

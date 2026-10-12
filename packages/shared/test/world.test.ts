@@ -202,3 +202,9 @@ it("keeps active difficulty through wave and applies changes at next preparation
   expect(w.activeDifficulty).toBe("hard");
   expect(w.remainingMs).toBe(300000);
 });
+it("rejects non-string difficulty without changing or pausing the world", () => {
+  const w = setup();
+  const before = structuredClone(w);
+  expect(act(w, "difficulty", { value: ["hard"] }).ok).toBe(false);
+  expect(w).toEqual(before);
+});

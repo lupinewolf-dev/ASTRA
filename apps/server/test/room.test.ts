@@ -121,3 +121,37 @@ it("restores persisted simulation after a real server restart", async () => {
     store.close();
   }
 });
+it("disconnects revoked idle sessions and pauses the now-empty world", async () => {
+  const store = openStore(":memory:");
+  store.db
+    .prepare("INSERT INTO accounts VALUES(?,?,?)")
+    .run("a", "Ana", "hash");
+  const w = createWorld("revoked");
+  addPlayer(w, "a", "Ana");
+  store.saveWorld(w);
+  store.db.prepare("INSERT INTO members VALUES(?,?)").run("a", "revoked");
+  const server = await startServer({ store, port: 0, host: "127.0.0.1" });
+  const origin = `http://127.0.0.1:${server.port}`;
+  const session = issueSession(store, "a");
+  let room: Room | undefined;
+  try {
+    room = await new Client(origin, {
+      headers: { origin, cookie: `astra_session=${session}` },
+    }).joinOrCreate("farm", { worldId: "revoked" });
+    room.onMessage("world", () => {});
+    room.onMessage("status", () => {});
+    let left = false;
+    room.onLeave(() => (left = true));
+    store.db.prepare("DELETE FROM sessions WHERE token=?").run(session);
+    await until(() => left);
+    expect(server.rooms.get("revoked")!.connected.size).toBe(0);
+    const remaining = store.loadWorld("revoked")!.remainingMs;
+    await new Promise((r) => setTimeout(r, 150));
+    expect(store.loadWorld("revoked")!.remainingMs).toBe(remaining);
+    room = undefined;
+  } finally {
+    if (room) await room.leave();
+    await server.stop();
+    store.close();
+  }
+});

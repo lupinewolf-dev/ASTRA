@@ -239,7 +239,10 @@ export function applyCommand(w: World, id: string, c: Command): Result {
       break;
     }
     case "difficulty":
-      if (!["tranquil", "normal", "hard"].includes(String(a.value)))
+      if (
+        typeof a.value !== "string" ||
+        !["tranquil", "normal", "hard"].includes(a.value)
+      )
         return fail("Dificultad inválida");
       w.difficulty = a.value as Difficulty;
       break;

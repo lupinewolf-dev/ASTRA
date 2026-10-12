@@ -14,3 +14,7 @@ export function serverRoot() {
   }
   throw Error("No se encontró la carpeta del servidor");
 }
+
+export function databasePath(configured?: string) {
+  return resolve(serverRoot(), "../../", configured ?? "data/farm.sqlite");
+}

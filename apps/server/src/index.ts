@@ -2,10 +2,10 @@ import { createServer } from "node:http";
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { fileURLToPath } from "node:url";
-import { resolve, dirname } from "node:path";
-import { copyFileSync, mkdirSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { existsSync } from "node:fs";
 import express from "express";
-import { serverRoot } from "./paths.js";
+import { serverRoot, databasePath } from "./paths.js";
 import { createApp } from "./http.js";
 import { openStore, type Store } from "./store.js";
 import { farmRoomClass, type FarmInstance } from "./room.js";
@@ -21,9 +21,7 @@ export async function startServer(
   } = {},
 ) {
   const ownStore = !options.store,
-    store =
-      options.store ??
-      openStore(process.env.DATABASE_PATH ?? resolve("data/farm.sqlite"));
+    store = options.store ?? openStore(databasePath(process.env.DATABASE_PATH));
   const app = createApp(store, {
     origins: options.origins,
     production: options.production,
