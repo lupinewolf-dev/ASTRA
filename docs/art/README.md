@@ -1,6 +1,6 @@
 # Arte y granja 3D de ASTRA
 
-La página `/visual.html` es ahora una prueba jugable local: mapa ampliado, cámara que sigue al jugador, cultivos, recursos, fabricación de munición y oleadas suaves de zombis. El objetivo inicial es cosechar tres parcelas y superar una oleada. Ver [guía de juego](jugable.md).
+La página `/visual.html` es ahora una prueba jugable local: mapa ampliado, cámara que sigue al jugador, cultivos, recursos, fabricación de munición y oleadas progresivas de zombis. El objetivo inicial es cosechar tres parcelas y superar una oleada. Ver [guía de juego](jugable.md).
 
 ## Capturas reales
 

@@ -28,3 +28,5 @@ Acércate a un bancal listo y pulsa **Cosechar**. Luego la misma parcela permite
 La mesa frente a la casa fabrica 12 balas gastando 2 de madera y 2 de piedra. Comer gasta una comida y recupera 25 de vida. Las cercas protegen el huerto, reciben daño de los zombis y puedes repararlas al acercarte, gastando madera. Si caes, vuelves al refugio y dejas parte de los recursos en una mochila que se puede recuperar.
 
 El juego pausa al ocultar la página o cambiar de ventana. Este checkpoint es **local y sin guardado**: al recargar vuelve al comienzo. Las partidas cooperativas anteriores siguen disponibles en `/`. Los gráficos y enemigos siguen siendo provisionales, y falta comprobar rendimiento en iPhone/Android físicos.
+
+El movimiento tiene un arranque y frenado breves, giro suave y cámara amortiguada. Al apuntar, puedes caminar de costado. Las oleadas empiezan con cinco enemigos: caminantes (70 de vida), corredores (45, más rápidos) y blindados (140, más lentos). Cada oleada superada añade dos enemigos hasta trece, y ocho puntos de vida por enemigo. Las barras sobre los zombis muestran la vida restante.

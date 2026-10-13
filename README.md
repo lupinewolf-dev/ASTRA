@@ -60,7 +60,7 @@ Gráficos originales provisionales generados con figuras. El navegador emulado n
 
 Con `npm.cmd run dev` activo, abre `http://localhost:5173/visual.html` en PC. En celular, usa la dirección de tu PC en la misma Wi-Fi y añade `/visual.html`.
 
-Esta prueba permite recorrer un mapa de unas 30 × 28 unidades, cosechar, sembrar, regar, recoger madera/piedra/provisiones, fabricar balas, comer y defenderse de oleadas suaves. El objetivo inicial es cosechar tres parcelas y sobrevivir una oleada. Las cercas bloquean, reciben daño y se pueden reparar. La cámara sigue al personaje; **M / Ver mapa** muestra el terreno completo.
+Esta prueba permite recorrer un mapa de unas 30 × 28 unidades, cosechar, sembrar, regar, recoger madera/piedra/provisiones, fabricar balas, comer y defenderse de oleadas progresivas. El objetivo inicial es cosechar tres parcelas y sobrevivir una oleada. Las cercas bloquean, reciben daño y se pueden reparar. La cámara sigue al personaje; **M / Ver mapa** muestra el terreno completo.
 
 - PC: **WASD/flechas** para moverte, **E** para la acción cercana, **C** para fabricar balas en la mesa frente a la casa, **H** para comer, mouse para apuntar y disparar automáticamente cuando hay enemigos a alcance.
 - Celular: joystick izquierdo para moverte, derecho para apuntar y botones de acción; admite dos dedos simultáneos y ambas orientaciones.

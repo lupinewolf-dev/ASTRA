@@ -78,6 +78,7 @@ export function bindWalking(scene: VisualScene): () => void {
   };
   const keyup = (event: KeyboardEvent) => {
     keys.delete(event.key.toLowerCase());
+    if (!keys.size && !touchX && !touchY) scene.walk(0, 0, 0);
   };
   const move = (event: PointerEvent) => {
     if (event.pointerId !== pointer) return;

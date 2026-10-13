@@ -103,6 +103,8 @@ describe("local playable farm", () => {
 });
 it("does not waste automatic ammunition while enemies are still outside weapon range", () => {
   const { game } = setup();
+  game.player.x = 15;
+  game.player.y = 15;
   game.startWave();
   game.tick(1);
   const ammo = game.player.inventory.ammo;
@@ -141,4 +143,79 @@ it("blocks the visible river bank but lets the player cross on the bridge", () =
   game.move(-1, 0);
   advance(game, 1000);
   expect(game.player.x).toBeLessThan(2.5);
+});
+it("accelerates into walking, brakes promptly and clears momentum on pause", () => {
+  const { game } = setup();
+  game.player.x = 21;
+  game.player.y = 16;
+  game.move(1, 0);
+  const start = game.player.x;
+  game.tick(16);
+  expect(game.player.x - start).toBeGreaterThan(0);
+  expect(game.player.x - start).toBeLessThan(0.04);
+  advance(game, 500);
+  game.move(0, 0);
+  advance(game, 150);
+  const stopped = game.player.x;
+  advance(game, 200);
+  expect(game.player.x).toBe(stopped);
+  game.move(1, 0);
+  advance(game, 200);
+  game.pause(true);
+  game.pause(false);
+  const paused = game.player.x;
+  advance(game, 200);
+  expect(game.player.x).toBe(paused);
+});
+it("reverses direction through a short braking transition instead of snapping", () => {
+  const { game } = setup();
+  game.player.x = 21;
+  game.player.y = 16;
+  game.move(1, 0);
+  advance(game, 500);
+  const start = game.player.x;
+  game.move(-1, 0);
+  game.tick(16);
+  expect(game.player.x).toBeGreaterThan(start);
+  advance(game, 400);
+  expect(game.player.x).toBeLessThan(start);
+});
+it("spawns a tougher varied first wave and increases later waves", () => {
+  const { game } = setup();
+  game.startWave();
+  game.tick(16);
+  expect(game.world.zombies.length).toBeGreaterThanOrEqual(5);
+  expect(
+    new Set(game.world.zombies.map((z) => game.profileFor(z.id).kind)),
+  ).toEqual(new Set(["walker", "runner", "armored"]));
+  expect(
+    Math.max(...game.world.zombies.map((z) => z.hp)),
+  ).toBeGreaterThanOrEqual(120);
+  const first = game.world.zombies.length;
+  game.world.zombies = [];
+  game.tick(16);
+  game.startWave();
+  game.tick(16);
+  expect(game.world.zombies.length).toBeGreaterThan(first);
+});
+it("makes runners close in faster than regular zombies", () => {
+  const { game } = setup();
+  expect(game.profileFor).toBeTypeOf("function");
+  game.startWave();
+  game.tick(16);
+  const runner = game.world.zombies.find(
+    (z) => game.profileFor(z.id).kind === "runner",
+  )!;
+  const walker = game.world.zombies.find(
+    (z) => game.profileFor(z.id).kind === "walker",
+  )!;
+  game.world.zombies = [runner, walker];
+  game.player.x = 15;
+  game.player.y = 15;
+  for (const z of game.world.zombies) {
+    z.x = 22;
+    z.y = 15;
+  }
+  advance(game, 300);
+  expect(22 - runner.x).toBeGreaterThan((22 - walker.x) * 1.7);
 });

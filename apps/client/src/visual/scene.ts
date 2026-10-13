@@ -45,6 +45,10 @@ export function createVisualScene(
   let frame = 0,
     lastTime = 0,
     overview = false;
+  const focus = new THREE.Vector2(
+    game?.player.x ?? 9.8,
+    game?.player.y ?? 11.8,
+  );
   let disposed = false,
     observer: ResizeObserver | undefined;
   const lose = (event: Event) => {
@@ -539,8 +543,8 @@ export function createVisualScene(
           : Math.max(5.8, 4.1 / aspect)
         : Math.max(9.2, 11.7 / aspect);
       if (game) {
-        const x = overview ? 14.5 : game.player.x,
-          z = overview ? 14 : game.player.y;
+        const x = focus.x,
+          z = focus.y;
         camera.position.set(x + 20.2, 27, z + 23.2);
         camera.lookAt(x, 1, z);
       }
@@ -683,27 +687,21 @@ export function createVisualScene(
         previousZ = player.position.z;
       game.tick(dt * 1000);
       player.position.set(game.player.x, 0, game.player.y);
+      const movement = {
+        x: player.position.x - previousX,
+        y: player.position.z - previousZ,
+      };
       animateFarmer(
         player,
-        Math.hypot(
-          player.position.x - previousX,
-          player.position.z - previousZ,
-        ),
-        Math.atan2(
-          game.player.move.x || player.position.x - previousX,
-          game.player.move.y || player.position.z - previousZ,
-        ),
+        Math.hypot(movement.x, movement.y),
+        game.aiming
+          ? Math.atan2(game.player.aim.x, game.player.aim.y)
+          : Math.atan2(movement.x, movement.y),
         dt,
+        game.aiming || Math.hypot(movement.x, movement.y)
+          ? movement
+          : undefined,
       );
-      if (game.player.firing) {
-        const heading = Math.atan2(game.player.aim.x, game.player.aim.y);
-        player.rotation.y +=
-          Math.atan2(
-            Math.sin(heading - player.rotation.y),
-            Math.cos(heading - player.rotation.y),
-          ) *
-          (1 - Math.exp(-12 * dt));
-      }
       cropVisuals.forEach(({ plants, soil }, i) => {
         const crop = world.crops[i];
         plants.visible = crop.stage !== "empty";
@@ -734,7 +732,21 @@ export function createVisualScene(
             kit.block(model, 0x596856, x, 0.26, 0, 0.19, 0.44, 0.24);
             kit.block(model, 0x536552, x * 2.5, 0.88, 0.23, 0.14, 0.18, 0.5);
           }
-          kit.orb(model, 0x677e72, 0, 0.79, 0, 0.33, 0.4, 0.23);
+          const profile = game.profileFor(enemy.id);
+          kit.orb(
+            model,
+            profile.kind === "runner"
+              ? 0xb77e4e
+              : profile.kind === "armored"
+                ? 0x737e88
+                : 0x677e72,
+            0,
+            0.79,
+            0,
+            0.33,
+            0.4,
+            0.23,
+          );
           kit.mesh(
             model,
             kit.characterBall,
@@ -748,6 +760,27 @@ export function createVisualScene(
           );
           for (const x of [-0.09, 0.09])
             kit.orb(model, 0x665a3d, x, 1.34, 0.265, 0.032, 0.038, 0.018);
+          if (profile.kind === "armored") {
+            kit.block(model, 0xadb5b8, 0, 0.85, 0.22, 0.55, 0.55, 0.12);
+            kit.orb(model, 0x737e88, 0, 1.48, 0.03, 0.3, 0.16, 0.28);
+          }
+          if (profile.kind === "runner") model.scale.set(0.85, 0.92, 0.85);
+          const health = new THREE.Group();
+          health.name = "health";
+          health.position.y = 1.85;
+          kit.block(health, 0x423d36, 0, 0, 0, 0.7, 0.07, 0.025);
+          const fill = kit.block(
+            health,
+            0xc68b6a,
+            0,
+            0,
+            0.02,
+            0.66,
+            0.045,
+            0.025,
+          );
+          fill.name = "fill";
+          model.add(health);
           root.add(model);
           enemyVisuals.set(enemy.id, model);
         }
@@ -756,6 +789,15 @@ export function createVisualScene(
           game.player.x - enemy.x,
           game.player.y - enemy.y,
         );
+        const health = model.getObjectByName("health")!;
+        const fill = health.getObjectByName("fill")!;
+        const ratio = Math.max(0, enemy.hp / game.profileFor(enemy.id).maxHp);
+        fill.scale.x = 0.66 * ratio;
+        fill.position.x = -0.33 * (1 - ratio);
+        health.quaternion
+          .copy(model.quaternion)
+          .invert()
+          .multiply(camera.quaternion);
       }
       for (const [id, model] of bagVisuals)
         if (!world.backpacks.some((b) => b.id === id)) {
@@ -829,13 +871,23 @@ export function createVisualScene(
       lastTime = time;
       try {
         update(dt);
-        const x = overview ? 14.5 : game.player.x,
-          z = overview ? 14 : game.player.y;
+        const target = new THREE.Vector2(
+          overview ? 14.5 : game.player.x,
+          overview ? 14 : game.player.y,
+        );
+        if (focus.distanceTo(target) > 6 || focus.distanceTo(target) < 0.001)
+          focus.copy(target);
+        else focus.lerp(target, 1 - Math.exp(-10 * dt));
+        const x = focus.x,
+          z = focus.y;
         camera.position.set(x + 20.2, 27, z + 23.2);
         camera.lookAt(x, 1, z);
         const drawKey = [
           game.player.x,
           game.player.y,
+          focus.x,
+          focus.y,
+          player.rotation.y,
           game.player.aim.x,
           game.player.aim.y,
           game.aiming,
@@ -843,7 +895,7 @@ export function createVisualScene(
           ...world.crops.map(
             (c) => `${c.stage}:${c.watered}:${Math.floor(c.growth / 1000)}`,
           ),
-          ...world.zombies.map((z) => `${z.x}:${z.y}`),
+          ...world.zombies.map((z) => `${z.x}:${z.y}:${z.hp}`),
           world.fences.length,
           world.backpacks.length,
           world.shots.length,
@@ -870,6 +922,10 @@ export function createVisualScene(
       dispose: playDispose,
       toggleMap() {
         overview = !overview;
+        focus.set(
+          overview ? 14.5 : game.player.x,
+          overview ? 14 : game.player.y,
+        );
         safeResize();
       },
     };

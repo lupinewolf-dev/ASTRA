@@ -8,7 +8,7 @@ import {
   tickWorld,
 } from "../../../../packages/shared/src/world.js";
 import { CONFIG } from "../../../../packages/shared/src/config.js";
-import { distance } from "../../../../packages/shared/src/geometry.js";
+import { distance, isHouse } from "../../../../packages/shared/src/geometry.js";
 import { insideTerrain, TREE_POSITIONS, DECOR_FENCES } from "./play-map.js";
 
 /** Disposable single-player sandbox, sharing the real game's commands and combat rules. */
@@ -20,6 +20,20 @@ export class LocalFarmGame {
   paused = false;
   message = "Cosecha tres parcelas y sobrevive una oleada.";
   private serial = 0;
+  private velocity: Point = { x: 0, y: 0 };
+  private profiles = new Map<
+    string,
+    { kind: "walker" | "runner" | "armored"; maxHp: number; speed: number }
+  >();
+  profileFor(id: string) {
+    return (
+      this.profiles.get(id) ?? {
+        kind: "walker" as const,
+        maxHp: 70,
+        speed: 0.9,
+      }
+    );
+  }
   private motion: Point = { x: 0, y: 0 };
   private direction: Point = { x: 1, y: 0 };
   private firing = false;
@@ -27,7 +41,7 @@ export class LocalFarmGame {
     this.world = structuredClone(source);
     this.playerId = Object.keys(this.world.players)[0];
     if (!this.playerId) throw new Error("Falta el jugador local");
-    this.world.difficulty = this.world.activeDifficulty = "tranquil";
+    this.world.difficulty = this.world.activeDifficulty = "normal";
     this.world.remainingMs = 90000;
     this.world.crops.push(
       {
@@ -91,6 +105,7 @@ export class LocalFarmGame {
   pause(value: boolean) {
     this.paused = value;
     if (value) {
+      this.velocity = { x: 0, y: 0 };
       this.move(0, 0);
       this.aim(0, 0, false);
       this.player.move = { x: 0, y: 0 };
@@ -142,10 +157,22 @@ export class LocalFarmGame {
       return;
     const dt = Math.min(milliseconds, 100),
       p = this.player;
-    const nx = p.x + (this.motion.x * CONFIG.moveSpeed * dt) / 1000,
-      ny = p.y + (this.motion.y * CONFIG.moveSpeed * dt) / 1000;
+    const braking =
+      !Math.hypot(this.motion.x, this.motion.y) ||
+      this.motion.x * this.velocity.x + this.motion.y * this.velocity.y < 0;
+    const step = ((braking ? 36 : 20) * dt) / 1000;
+    for (const axis of ["x", "y"] as const) {
+      const target = this.motion[axis] * CONFIG.moveSpeed;
+      const difference = target - this.velocity[axis];
+      this.velocity[axis] +=
+        Math.sign(difference) * Math.min(Math.abs(difference), step);
+    }
+    const nx = p.x + (this.velocity.x * dt) / 1000,
+      ny = p.y + (this.velocity.y * dt) / 1000;
     if (!this.blocked(nx, p.y)) p.x = nx;
+    else this.velocity.x = 0;
     if (!this.blocked(p.x, ny)) p.y = ny;
+    else this.velocity.y = 0;
     p.move = { x: 0, y: 0 };
     p.inputAge = 0;
     p.aim = this.direction;
@@ -158,13 +185,64 @@ export class LocalFarmGame {
           (p.weapon === "pistol" ? CONFIG.gunRange : CONFIG.meleeRange),
       );
     const phase = this.world.phase;
+    const previous = new Map(
+      this.world.zombies.map((z) => [z.id, { x: z.x, y: z.y }]),
+    );
+    const backpacks = this.world.backpacks.length;
     tickWorld(this.world, dt, [this.playerId]);
+    if (this.world.backpacks.length > backpacks) {
+      this.velocity = { x: 0, y: 0 };
+      this.move(0, 0);
+      this.aim(0, 0, false);
+    }
+    for (const z of this.world.zombies) {
+      const before = previous.get(z.id);
+      if (!before) continue;
+      const factor = this.profileFor(z.id).speed / 0.9;
+      const x = before.x + (z.x - before.x) * factor;
+      const y = before.y + (z.y - before.y) * factor;
+      if (
+        !isHouse(x, y) &&
+        !this.world.fences.some(
+          (f) => Math.abs(f.x - x) < 0.7 && Math.abs(f.y - y) < 0.7,
+        )
+      ) {
+        z.x = x;
+        z.y = y;
+      }
+    }
+    for (const id of this.profiles.keys())
+      if (!this.world.zombies.some((z) => z.id === id))
+        this.profiles.delete(id);
     if (phase === "preparation" && this.world.phase === "wave") {
+      const count = Math.min(13, 5 + this.survived * 2);
+      while (this.world.zombies.length < count)
+        this.world.zombies.push({
+          id: `local-z-${++this.serial}`,
+          x: 1,
+          y: 2,
+          hp: 70,
+          cooldown: 0,
+        });
       this.world.zombies.forEach((z, i) => {
+        const kind =
+          i % 5 === 2 ? "runner" : i % 5 === 4 ? "armored" : "walker";
+        const maxHp =
+          (kind === "armored" ? 140 : kind === "runner" ? 45 : 70) +
+          this.survived * 8;
+        this.profiles.set(z.id, {
+          kind,
+          maxHp,
+          speed: kind === "runner" ? 2 : kind === "armored" ? 0.55 : 0.9,
+        });
+        z.hp = maxHp;
+        z.x = i % 4 === 0 ? 1 : 4 + ((i * 3) % 21);
+        z.y = i % 4 === 2 ? 1 : 3 + ((i * 3) % 19);
         if (i % 4 === 1) z.x = 28;
         if (i % 4 === 3) z.y = 25;
       });
-      this.message = "¡Oleada! Apunta para disparar automáticamente.";
+      this.message =
+        "¡Oleada! Corredores rápidos y blindados resistentes. Apunta para disparar.";
     }
     if (phase === "wave" && this.world.phase === "preparation") {
       this.survived++;

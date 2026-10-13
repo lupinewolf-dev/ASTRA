@@ -104,3 +104,18 @@ it("uses an oversized cartoon head with all facial features moving together", ()
   }
   kit.dispose();
 });
+it("uses a slower walking cadence and lateral leg motion while strafing", () => {
+  const farmer = models.createFarmer(0xbd704d);
+  models.animateFarmer(farmer, 0.1, 0, 1 / 60);
+  expect(Math.abs(farmer.getObjectByName("left-leg")!.rotation.x)).toBeLessThan(
+    0.3,
+  );
+  farmer.rotation.y = Math.PI / 2;
+  models.animateFarmer(farmer, 0.2, Math.PI / 2, 1 / 60, { x: 0, y: 1 });
+  expect(Math.abs(farmer.getObjectByName("left-leg")!.rotation.x)).toBeLessThan(
+    0.01,
+  );
+  expect(
+    Math.abs(farmer.getObjectByName("left-leg")!.rotation.z),
+  ).toBeGreaterThan(0.1);
+});

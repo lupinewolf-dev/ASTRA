@@ -437,26 +437,41 @@ export function animateFarmer(
   distance: number,
   heading: number,
   seconds: number,
+  movement?: { x: number; y: number },
 ) {
   const moving = distance > 0.00001;
-  const phase = moving ? (walkingPhases.get(g) ?? 0) + distance * 8 : 0;
+  const phase = moving ? (walkingPhases.get(g) ?? 0) + distance * 4 : 0;
   walkingPhases.set(g, phase);
   const swing = moving ? Math.sin(phase) * 0.55 : 0;
-  g.getObjectByName("left-leg")!.rotation.x = swing;
-  g.getObjectByName("right-leg")!.rotation.x = -swing || 0;
-  g.getObjectByName("left-arm")!.rotation.x = -swing * 0.7 || 0;
-  g.getObjectByName("right-arm")!.rotation.x = swing * 0.7;
-  g.getObjectByName("body")!.position.y = moving
-    ? Math.abs(Math.sin(phase)) * 0.025
-    : 0;
-  if (moving) {
+  if (moving || movement) {
     const delta = Math.atan2(
       Math.sin(heading - g.rotation.y),
       Math.cos(heading - g.rotation.y),
     );
     g.rotation.y +=
       delta * (1 - Math.exp(-12 * Math.min(Math.max(seconds, 0), 0.05)));
+    if (Math.abs(delta) < 0.001) g.rotation.y = heading;
   }
+  const length = movement ? Math.hypot(movement.x, movement.y) : 0;
+  const forward = length
+    ? (movement!.x * Math.sin(g.rotation.y) +
+        movement!.y * Math.cos(g.rotation.y)) /
+      length
+    : 1;
+  const sideways = length
+    ? (movement!.x * Math.cos(g.rotation.y) -
+        movement!.y * Math.sin(g.rotation.y)) /
+      length
+    : 0;
+  g.getObjectByName("left-leg")!.rotation.x = swing * forward;
+  g.getObjectByName("right-leg")!.rotation.x = -swing * forward || 0;
+  g.getObjectByName("left-leg")!.rotation.z = -swing * sideways;
+  g.getObjectByName("right-leg")!.rotation.z = swing * sideways;
+  g.getObjectByName("left-arm")!.rotation.x = -swing * forward * 0.7 || 0;
+  g.getObjectByName("right-arm")!.rotation.x = swing * forward * 0.7;
+  g.getObjectByName("body")!.position.y = moving
+    ? Math.abs(Math.sin(phase)) * 0.025
+    : 0;
 }
 export function createCropPlot(k = new ModelKit(), variant = 0) {
   const g = new THREE.Group();
