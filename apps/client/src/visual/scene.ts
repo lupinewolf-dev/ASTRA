@@ -6,6 +6,7 @@ import {
   createTree,
   createPine,
   createFarmer,
+  animateFarmer,
   createCropPlot,
   createFence,
   createWorkbench,
@@ -383,10 +384,15 @@ export function createVisualScene(
     const publish = () => {
       renderer.domElement.dataset.playerX = player.position.x.toFixed(3);
       renderer.domElement.dataset.playerZ = player.position.z.toFixed(3);
+      renderer.domElement.dataset.gait = player
+        .getObjectByName("left-leg")!
+        .rotation.x.toFixed(3);
     };
     publish();
     const walk = (x: number, y: number, seconds: number) => {
-      if (disposed || !player || (!x && !y)) return;
+      if (disposed || !player) return;
+      const previousX = player.position.x,
+        previousZ = player.position.z;
       const length = Math.max(1, Math.hypot(x, y));
       // Camera-aligned input: right follows screen right, up follows screen up.
       const dx = (x * 0.8 + y * 0.6) / length;
@@ -403,7 +409,15 @@ export function createVisualScene(
         13,
         18,
       );
-      player.rotation.y = Math.atan2(dx, dz);
+      animateFarmer(
+        player,
+        Math.hypot(
+          player.position.x - previousX,
+          player.position.z - previousZ,
+        ),
+        Math.atan2(dx, dz),
+        seconds,
+      );
       publish();
       try {
         renderer.render(scene, camera);

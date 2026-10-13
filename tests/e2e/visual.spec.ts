@@ -109,7 +109,9 @@ test("keyboard walking moves the farmer and stops after releasing", async ({
   const start = await canvas.getAttribute("data-player-x");
   await page.keyboard.down("d");
   await expect.poll(() => canvas.getAttribute("data-player-x")).not.toBe(start);
+  await expect.poll(() => canvas.getAttribute("data-gait")).not.toBe("0.000");
   await page.keyboard.up("d");
+  await expect(canvas).toHaveAttribute("data-gait", "0.000");
   await page.waitForTimeout(100);
   const stopped = await canvas.getAttribute("data-player-x");
   await page.waitForTimeout(200);

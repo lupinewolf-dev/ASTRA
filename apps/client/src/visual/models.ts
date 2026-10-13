@@ -232,29 +232,75 @@ export function createPine(k: ModelKit) {
 }
 export function createFarmer(color: number, k = new ModelKit()) {
   const g = new THREE.Group();
-  for (const x of [-0.15, 0.15]) {
-    k.block(g, 0x4c5143, x, 0.4, 0, 0.2, 0.53, 0.24);
-    k.block(g, 0x554333, x, 0.13, 0.09, 0.23, 0.17, 0.4);
+  const body = new THREE.Group();
+  body.name = "body";
+  g.add(body);
+  for (const [index, x] of [-0.15, 0.15].entries()) {
+    const leg = new THREE.Group();
+    leg.name = index === 0 ? "left-leg" : "right-leg";
+    leg.position.set(x, 0.66, 0);
+    body.add(leg);
+    k.block(leg, 0x394a49, 0, -0.26, 0, 0.21, 0.53, 0.25);
+    k.block(leg, 0x49382c, 0, -0.53, 0.09, 0.25, 0.18, 0.41);
+    k.block(leg, 0xc3a477, 0, -0.61, 0.09, 0.26, 0.04, 0.42);
   }
-  k.orb(g, color, 0, 0.83, 0, 0.33, 0.41, 0.25);
-  k.block(g, 0x7b633f, 0, 0.93, -0.28, 0.4, 0.45, 0.2);
-  const roll = k.pole(g, 0x8d9b78, 0, 1.22, -0.29, 0.1, 0.42);
+  k.orb(body, color, 0, 0.83, 0, 0.35, 0.42, 0.27);
+  k.block(body, 0x7b633f, 0, 0.93, -0.29, 0.43, 0.48, 0.22);
+  const roll = k.pole(body, 0x8d9b78, 0, 1.22, -0.31, 0.1, 0.45);
   roll.rotation.z = Math.PI / 2;
-  for (const x of [-0.35, 0.35]) {
-    const arm = k.pole(g, color, x, 0.76, 0.04, 0.105, 0.49);
+  for (const [index, x] of [-0.35, 0.35].entries()) {
+    const arm = new THREE.Group();
+    arm.name = index === 0 ? "left-arm" : "right-arm";
+    arm.position.set(x, 0.99, 0.04);
     arm.rotation.z = x > 0 ? -0.16 : 0.16;
-    k.orb(g, 0xd9af85, x, 0.48, 0.1, 0.1, 0.12, 0.1);
+    body.add(arm);
+    k.pole(arm, color, 0, -0.23, 0, 0.11, 0.49);
+    k.orb(arm, 0xd9af85, 0, -0.51, 0.06, 0.105, 0.12, 0.105);
+    if (index === 1) {
+      k.block(arm, 0x383f3b, 0, -0.6, 0.13, 0.09, 0.23, 0.13);
+      k.block(arm, 0x515e55, 0, -0.59, 0.22, 0.1, 0.13, 0.28);
+    }
   }
-  k.orb(g, 0xe5bc90, 0, 1.42, 0.035, 0.255, 0.29, 0.235);
-  k.orb(g, 0x66503a, 0, 1.62, -0.02, 0.265, 0.17, 0.24);
-  for (const x of [-0.095, 0.095])
-    k.orb(g, 0x413b30, x, 1.46, 0.252, 0.024, 0.03, 0.018);
-  k.orb(g, 0xd1a275, 0, 1.38, 0.272, 0.035, 0.04, 0.03);
+  k.orb(body, 0xe5bc90, 0, 1.43, 0.035, 0.29, 0.31, 0.26);
+  k.orb(body, 0x66503a, 0, 1.65, -0.02, 0.3, 0.17, 0.265);
+  // A light scarf and broad face make the silhouette readable from above.
+  k.block(body, 0xf0d5a0, 0, 1.17, 0.09, 0.4, 0.1, 0.33);
+  k.block(body, 0xf0d5a0, -0.16, 1.04, 0.25, 0.1, 0.27, 0.06);
+  for (const x of [-0.105, 0.105])
+    k.orb(body, 0x302f29, x, 1.46, 0.275, 0.03, 0.035, 0.021);
+  k.orb(body, 0xd1a275, 0, 1.38, 0.3, 0.04, 0.045, 0.035);
   for (const x of [-0.17, 0.17])
-    k.block(g, 0x9d8256, x, 0.96, 0.215, 0.055, 0.58, 0.025);
-  k.block(g, 0x383f3b, 0.35, 0.39, 0.17, 0.09, 0.23, 0.13);
-  k.block(g, 0x515e55, 0.35, 0.4, 0.26, 0.1, 0.13, 0.28);
+    k.block(body, 0x9d8256, x, 0.96, 0.235, 0.055, 0.58, 0.025);
   return g;
+}
+
+const walkingPhases = new WeakMap<THREE.Group, number>();
+/** Distance-driven gait; zero displacement restores the resting pose. */
+export function animateFarmer(
+  g: THREE.Group,
+  distance: number,
+  heading: number,
+  seconds: number,
+) {
+  const moving = distance > 0.00001;
+  const phase = moving ? (walkingPhases.get(g) ?? 0) + distance * 8 : 0;
+  walkingPhases.set(g, phase);
+  const swing = moving ? Math.sin(phase) * 0.55 : 0;
+  g.getObjectByName("left-leg")!.rotation.x = swing;
+  g.getObjectByName("right-leg")!.rotation.x = -swing || 0;
+  g.getObjectByName("left-arm")!.rotation.x = -swing * 0.7 || 0;
+  g.getObjectByName("right-arm")!.rotation.x = swing * 0.7;
+  g.getObjectByName("body")!.position.y = moving
+    ? Math.abs(Math.sin(phase)) * 0.025
+    : 0;
+  if (moving) {
+    const delta = Math.atan2(
+      Math.sin(heading - g.rotation.y),
+      Math.cos(heading - g.rotation.y),
+    );
+    g.rotation.y +=
+      delta * (1 - Math.exp(-12 * Math.min(Math.max(seconds, 0), 0.05)));
+  }
 }
 export function createCropPlot(k = new ModelKit(), variant = 0) {
   const g = new THREE.Group();

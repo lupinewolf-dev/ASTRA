@@ -20,6 +20,6 @@ La muestra usa modelos originales por geometría, cámara ortográfica, iluminac
 
 ## Prueba de movimiento
 
-La página `/visual.html` permite mover al personaje naranja por el patio frente a la casa con WASD o flechas en PC y joystick en pantallas táctiles. El segundo personaje permanece quieto. La cámara es fija; esta prueba local todavía no está conectada a las partidas ni al multijugador. El área caminable está limitada al patio para probar los controles antes de ampliar el mapa y sus colisiones. No hay animación de pasos todavía.
+La página `/visual.html` permite mover al personaje naranja por el patio frente a la casa con WASD o flechas en PC y joystick en pantallas táctiles. El segundo personaje permanece quieto. La cámara es fija; esta prueba local todavía no está conectada a las partidas ni al multijugador. El área caminable está limitada al patio para probar los controles antes de ampliar el mapa y sus colisiones. El personaje ahora anima brazos y piernas al caminar y gira suavemente; al detenerse vuelve a su postura de reposo.
 
 Al soltar el control, cambiar de ventana o ocultar la página, el movimiento se detiene. El renderizado se actualiza mientras se camina; la escena permanece en reposo cuando no hay movimiento. Las pruebas con viewport móvil no sustituyen probar en teléfonos reales.

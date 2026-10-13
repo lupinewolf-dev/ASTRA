@@ -32,6 +32,7 @@ export function bindWalking(scene: VisualScene): () => void {
       Number(keys.has("s") || keys.has("arrowdown")) -
         Number(keys.has("w") || keys.has("arrowup"));
     if (!x && !y) {
+      scene.walk(0, 0, 0);
       last = 0;
       return;
     }
@@ -50,6 +51,7 @@ export function bindWalking(scene: VisualScene): () => void {
     stick.setAttribute("aria-valuenow", "0");
     cancelAnimationFrame(frame);
     frame = last = 0;
+    if (!dead) scene.walk(0, 0, 0);
   };
   const keydown = (event: KeyboardEvent) => {
     if (
