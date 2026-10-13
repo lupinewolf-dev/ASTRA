@@ -1,3 +1,5 @@
+import { LocalFarmGame } from "./visual/local-game.js";
+import { createPlayHud } from "./visual/play-hud.js";
 import { createCharacterPreview } from "./visual/character-preview.js";
 import { bindWalking } from "./visual/controls.js";
 import { createWorld, addPlayer } from "../../../packages/shared/src/world.js";
@@ -30,7 +32,9 @@ const before = JSON.stringify(world);
 let scene: VisualScene | undefined,
   disposed = false;
 let unbindWalking: (() => void) | undefined;
+let hud: ReturnType<typeof createPlayHud> | undefined;
 const dispose = () => {
+  hud?.dispose();
   unbindWalking?.();
   scene?.dispose();
   disposed = true;
@@ -65,7 +69,14 @@ try {
     document.title = "ASTRA · Revisión de personaje";
     scene = createCharacterPreview(container);
   } else {
-    scene = createVisualScene(container, world);
+    const game = new LocalFarmGame(world);
+    document.body.classList.add("playing");
+    document.querySelector(".badge")!.textContent = "GRANJA JUGABLE · LOCAL";
+    document.querySelector("footer p")!.textContent =
+      "WASD / flechas: mover · E: acción · Mouse o joystick derecho: apuntar";
+    document.title = "ASTRA · Granja jugable";
+    scene = createVisualScene(container, game.world, game, () => hud?.render());
+    hud = createPlayHud(game, scene);
     unbindWalking = bindWalking(scene);
   }
   container.addEventListener("visual-context-lost", lost);

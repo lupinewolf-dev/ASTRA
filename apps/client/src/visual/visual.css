@@ -205,3 +205,143 @@ footer p {
     bottom: 65px;
   }
 }
+.aim-stick {
+  left: auto;
+  right: max(22px, env(safe-area-inset-right));
+}
+.aim-stick span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #66503c;
+  font-size: 24px;
+}
+.play-hud {
+  position: fixed;
+  top: 12px;
+  left: 185px;
+  right: 150px;
+  z-index: 2;
+  pointer-events: none;
+  text-align: center;
+}
+.play-stats {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #f4efdccc;
+  border: 1px solid #596e4b35;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #354b3b;
+}
+.play-objective {
+  font-size: 12px;
+  margin-top: 5px;
+  color: #324934;
+}
+.play-message {
+  font-size: 12px;
+  margin-top: 6px;
+  color: #3b4b35;
+  background: #e8ecd7ba;
+  border-radius: 10px;
+  padding: 5px;
+}
+.play-actions {
+  pointer-events: auto;
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(650px, calc(100vw - 40px));
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.play-actions button {
+  border: 1px solid #6b765d55;
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: #f4efdde8;
+  color: #354b3b;
+  font: 12px system-ui;
+  cursor: pointer;
+}
+.play-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.play-actions button:focus-visible {
+  outline: 3px solid #b78d58;
+}
+.playing footer {
+  bottom: 108px;
+}
+.playing footer p {
+  font: 11px system-ui;
+  margin: 5px 0 0;
+  background: #e8ecd788;
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+@media (pointer: coarse) {
+  .play-actions {
+    width: calc(100vw - 290px);
+    bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .play-actions button {
+    font-size: 11px;
+    padding: 7px 9px;
+  }
+  .playing footer {
+    left: 140px;
+    right: 140px;
+    bottom: 112px;
+  }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .play-hud {
+    top: 72px;
+    left: 12px;
+    right: 12px;
+  }
+  .play-stats {
+    font-size: 11px;
+  }
+  .play-actions {
+    width: calc(100vw - 24px);
+    bottom: max(145px, calc(env(safe-area-inset-bottom) + 130px));
+  }
+  .playing footer {
+    left: 12px;
+    right: 12px;
+    bottom: 230px;
+  }
+  .playing footer p {
+    display: none;
+  }
+}
+@media (max-height: 500px) {
+  .play-hud {
+    left: 160px;
+    right: 125px;
+    top: 10px;
+  }
+  .play-stats,
+  .play-objective,
+  .play-message {
+    font-size: 10px;
+  }
+  .play-message {
+    margin-top: 3px;
+    padding: 3px;
+  }
+  .playing footer {
+    bottom: 105px;
+  }
+  .playing footer p {
+    display: none;
+  }
+}

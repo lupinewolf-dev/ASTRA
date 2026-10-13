@@ -56,12 +56,19 @@ Gráficos originales provisionales generados con figuras. El navegador emulado n
 - `tests/e2e`: pruebas de navegador para dos jugadores y controles móviles.
 - `docs/superpowers`: diseño y plan aprobados.
 
-## Primera muestra visual 3D
+## Granja 3D jugable local
 
-La nueva dirección visual se prueba por separado. Con `npm.cmd run dev` activo, abre en tu PC `http://localhost:5173/visual.html`. En el celular, usa la dirección de tu PC en la misma red y añade `/visual.html`.
+Con `npm.cmd run dev` activo, abre `http://localhost:5173/visual.html` en PC. En celular, usa la dirección de tu PC en la misma Wi-Fi y añade `/visual.html`.
 
-Es una escena estática con casa, huerta, árboles y dos personajes; todavía no permite jugar ni cambia tu partida. La página principal conserva el juego anterior. Las capturas reales están en `docs/art/README.md`.
+Esta prueba permite recorrer un mapa de unas 30 × 28 unidades, cosechar, sembrar, regar, recoger madera/piedra/provisiones, fabricar balas, comer y defenderse de oleadas suaves. El objetivo inicial es cosechar tres parcelas y sobrevivir una oleada. Las cercas bloquean, reciben daño y se pueden reparar. La cámara sigue al personaje; **M / Ver mapa** muestra el terreno completo.
 
-Para actualizar desde un ZIP nuevo de GitHub, copia los archivos de código sobre tu carpeta actual **conservando `data` y cualquier `.env` existente**. Detén el juego con Ctrl+C antes de actualizar; después ejecuta `npm.cmd ci` y `npm.cmd run dev`. No reemplaces tu carpeta de partida por una carpeta vacía.
+- PC: **WASD/flechas** para moverte, **E** para la acción cercana, **C** para fabricar balas en la mesa frente a la casa, **H** para comer, mouse para apuntar y disparar automáticamente cuando hay enemigos a alcance.
+- Celular: joystick izquierdo para moverte, derecho para apuntar y botones de acción; admite dos dedos simultáneos y ambas orientaciones.
+- Los cultivos regados tardan 45 segundos. Las oleadas llegan cada 90 segundos; **Adelantar oleada** permite probar la defensa sin esperar. Al quedarse sin balas se usa el ataque cercano.
+- Se pausa al ocultar la página, cambiar de ventana o usar **Pausar**. Recargar reinicia esta prueba local; todavía no tiene guardado ni multijugador. El juego cooperativo anterior sigue en `/`.
 
-`npm run build` incluye ambas páginas. Con `npm start`, la muestra se abre en el puerto 3001 con la misma ruta `/visual.html`. Para comprobar solo esta etapa: `npm run test:visual` (requiere Chromium de Playwright, o `PLAYWRIGHT_CHROMIUM_EXECUTABLE` con la ruta de tu Chromium instalado).
+[Guía y capturas reales](docs/art/jugable.md). El visor del personaje sigue en `/visual.html?personaje=1`.
+
+Para actualizar desde un ZIP: detén el servidor con `Ctrl+C`, conserva tu carpeta `data` y cualquier `.env`, copia el código nuevo sin reemplazar esos datos y ejecuta `npm.cmd ci` seguido de `npm.cmd run dev`.
+
+`npm run build` incluye ambas páginas. Con `npm start`, la granja 3D se abre en el puerto 3001 con la misma ruta. Las pruebas visuales se ejecutan con `npm run test:visual` (Chromium de Playwright, o `PLAYWRIGHT_CHROMIUM_EXECUTABLE` con la ruta del Chromium instalado). Las pruebas móviles usan Chromium emulado y no confirman rendimiento ni compatibilidad en teléfonos físicos.

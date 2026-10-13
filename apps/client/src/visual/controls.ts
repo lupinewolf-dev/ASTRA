@@ -1,6 +1,6 @@
 import type { VisualScene } from "./scene.js";
 
-/** Local preview input; never changes the authoritative game World. */
+/** Keyboard and independent movement/aim pointers for the local farm. */
 export function bindWalking(scene: VisualScene): () => void {
   const stick = document.createElement("div");
   stick.className = "walking-stick";
@@ -112,9 +112,74 @@ export function bindWalking(scene: VisualScene): () => void {
   stick.addEventListener("pointerup", release);
   stick.addEventListener("pointercancel", release);
   stick.addEventListener("lostpointercapture", release);
+  const aimStick = document.createElement("div");
+  aimStick.className = "walking-stick aim-stick";
+  aimStick.setAttribute("role", "slider");
+  aimStick.setAttribute("aria-label", "Apuntar");
+  aimStick.setAttribute("aria-valuemin", "-1");
+  aimStick.setAttribute("aria-valuemax", "1");
+  aimStick.setAttribute("aria-valuenow", "0");
+  aimStick.tabIndex = 0;
+  const aimKnob = document.createElement("span");
+  aimKnob.textContent = "⊕";
+  aimStick.append(aimKnob);
+  if (scene.aim) document.body.append(aimStick);
+  let aimPointer: number | undefined;
+  const aimMove = (event: PointerEvent) => {
+    if (event.pointerId !== aimPointer) return;
+    const box = aimStick.getBoundingClientRect();
+    const x = (event.clientX - box.x - box.width / 2) / 38,
+      y = (event.clientY - box.y - box.height / 2) / 38;
+    const length = Math.max(1, Math.hypot(x, y));
+    const dx = x / length,
+      dy = y / length;
+    aimKnob.style.transform = `translate(${dx * 32}px, ${dy * 32}px)`;
+    aimStick.setAttribute("aria-valuenow", dx.toFixed(2));
+    scene.aim?.(dx, dy, Math.hypot(x, y) > 0.12);
+  };
+  const aimDown = (event: PointerEvent) => {
+    if (aimPointer !== undefined) return;
+    aimPointer = event.pointerId;
+    if (event.isTrusted) aimStick.setPointerCapture(event.pointerId);
+    aimMove(event);
+  };
+  const aimReset = () => {
+    aimPointer = undefined;
+    aimKnob.style.transform = "";
+    aimStick.setAttribute("aria-valuenow", "0");
+    scene.aim?.(0, 0, false);
+  };
+  const aimRelease = (event: PointerEvent) => {
+    if (event.pointerId === aimPointer) aimReset();
+  };
+  const canvas = document.querySelector("#visual-scene canvas")!;
+  const mouseAim = (event: Event) => {
+    const e = event as PointerEvent;
+    if (e.pointerType !== "touch") scene.aimAt?.(e.clientX, e.clientY);
+  };
+  const mouseLeave = (event: Event) => {
+    if ((event as PointerEvent).pointerType !== "touch") aimReset();
+  };
+  aimStick.addEventListener("pointerdown", aimDown);
+  aimStick.addEventListener("pointermove", aimMove);
+  aimStick.addEventListener("pointerup", aimRelease);
+  aimStick.addEventListener("pointercancel", aimRelease);
+  aimStick.addEventListener("lostpointercapture", aimRelease);
+  canvas.addEventListener("pointermove", mouseAim);
+  canvas.addEventListener("pointerleave", mouseLeave);
+  window.addEventListener("blur", aimReset);
+  window.addEventListener("pagehide", aimReset);
+  document.addEventListener("visibilitychange", aimReset);
   return () => {
     dead = true;
     reset();
+    aimReset();
+    aimStick.remove();
+    canvas.removeEventListener("pointermove", mouseAim);
+    canvas.removeEventListener("pointerleave", mouseLeave);
+    window.removeEventListener("blur", aimReset);
+    window.removeEventListener("pagehide", aimReset);
+    document.removeEventListener("visibilitychange", aimReset);
     stick.remove();
     window.removeEventListener("keydown", keydown);
     window.removeEventListener("keyup", keyup);

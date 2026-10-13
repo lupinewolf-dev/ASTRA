@@ -1,3 +1,6 @@
+import { batchStatic } from "./batch-static.js";
+import { LocalFarmGame } from "./local-game.js";
+import { TERRAIN_OUTLINE, TREE_POSITIONS, DECOR_FENCES } from "./play-map.js";
 import { createMaleAsset } from "./male-asset.js";
 import * as THREE from "three";
 import type { World } from "../../../../packages/shared/src/types.js";
@@ -14,6 +17,9 @@ import {
   createBarrel,
 } from "./models.js";
 export interface VisualScene {
+  aim?(x: number, y: number, firing: boolean): void;
+  aimAt?(x: number, y: number): void;
+  toggleMap?(): void;
   walk(x: number, y: number, seconds: number): void;
   resize(): void;
   dispose(): void;
@@ -21,6 +27,8 @@ export interface VisualScene {
 export function createVisualScene(
   container: HTMLElement,
   world: World,
+  game?: LocalFarmGame,
+  onUpdate?: () => void,
 ): VisualScene {
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -31,7 +39,12 @@ export function createVisualScene(
     kit = new ModelKit(),
     sun = new THREE.DirectionalLight(0xffd89d, 3.0),
     shadowMat = new THREE.ShadowMaterial({ opacity: 0.1 });
+  const ownedInstances: THREE.InstancedMesh[] = [];
+  const ownedMaterials: THREE.Material[] = [];
   const characterAssets: ReturnType<typeof createMaleAsset>[] = [];
+  let frame = 0,
+    lastTime = 0,
+    overview = false;
   let disposed = false,
     observer: ResizeObserver | undefined;
   const lose = (event: Event) => {
@@ -41,8 +54,11 @@ export function createVisualScene(
   const dispose = () => {
     if (disposed) return;
     disposed = true;
+    cancelAnimationFrame(frame);
     observer?.disconnect();
     renderer.domElement.removeEventListener("webglcontextlost", lose);
+    ownedInstances.forEach((instance) => instance.dispose());
+    ownedMaterials.forEach((material) => material.dispose());
     sun.shadow.dispose();
     characterAssets.forEach((asset) => asset.dispose());
     kit.dispose();
@@ -113,18 +129,7 @@ export function createVisualScene(
       root.add(mesh);
       return mesh;
     };
-    const outline = [
-      [0, 3],
-      [2, 0],
-      [10, -0.4],
-      [18, 1],
-      [21, 5],
-      [22, 14],
-      [20, 20],
-      [12, 22],
-      [3, 21],
-      [-0.5, 15],
-    ];
+    const outline = TERRAIN_OUTLINE;
     const islandShape = new THREE.Shape();
     outline.forEach(([x, z], i) =>
       i ? islandShape.lineTo(x, -z) : islandShape.moveTo(x, -z),
@@ -229,9 +234,16 @@ export function createVisualScene(
       kit.block(bridge, 0x93764d, 0, 0.94, z, 2.3, 0.1, 0.1);
     place(bridge, 3.5, 14.3);
     place(createHouse(kit), 10, 9.6);
-    world.crops.forEach((crop, i) =>
-      place(createCropPlot(kit, i), crop.x, crop.y),
-    );
+    const cropVisuals = world.crops.map((crop, i) => {
+      const plot = place(createCropPlot(kit, i), crop.x, crop.y);
+      const plants = new THREE.Group();
+      const meshes = plot.children.slice(5);
+      plot.add(plants);
+      meshes.forEach((part) => plants.add(part));
+      plants.visible = crop.stage !== "empty";
+      if (game) ownedInstances.push(...batchStatic(plants));
+      return { plot, plants, soil: plot.children[0] as THREE.Mesh };
+    });
     const farmers = Object.values(world.players).map((p, i) => {
       if (i === 0) {
         const asset = createMaleAsset();
@@ -330,9 +342,78 @@ export function createVisualScene(
       );
       place(stone, 10.4 + Math.sin(i * 0.8) * 0.7, 15.1 + i * 0.5, i * 0.6);
     }
-    place(createWorkbench(kit), 14.1, 12.5, 0.25);
+    place(createWorkbench(kit), 10, 12, 0.25);
     place(createBarrel(kit), 12.85, 11.15);
     place(createBarrel(kit), 13.6, 11.4, 0, 0.8);
+    for (const [x, z] of TREE_POSITIONS.slice(8)) {
+      const tree = createTree(kit, 1);
+      for (let i = 0; i < 5; i++)
+        kit.orb(
+          tree,
+          0xc5824f,
+          Math.cos(i * 1.5) * 1.0,
+          2.85 + Math.sin(i) * 0.2,
+          Math.sin(i * 1.5) * 1.0,
+          0.15,
+          0.15,
+          0.15,
+        );
+      place(tree, x, z, 0, 0.85);
+    }
+    patch(
+      [
+        [19, 4],
+        [27, 4],
+        [28, 12],
+        [25, 17],
+        [20, 13],
+      ],
+      0x88a56e,
+      0.012,
+    );
+    patch(
+      [
+        [19.8, 15],
+        [23, 15],
+        [23.5, 20.5],
+        [20, 21],
+      ],
+      0xa4ad76,
+      0.014,
+    );
+    patch(
+      [
+        [13.2, 19],
+        [20, 22],
+        [24, 22],
+        [25, 24],
+        [21, 24],
+        [13, 20.3],
+      ],
+      0xc1aa7a,
+      0.021,
+    );
+    const camp = new THREE.Group();
+    const tentGeo = new THREE.ConeGeometry(1, 1.6, 3);
+    kit.extra.push(tentGeo);
+    kit.mesh(camp, tentGeo, 0x7d998b, 0, 0.8, 0, 1.25, 1, 1.5).rotation.y =
+      Math.PI / 2;
+    kit.block(camp, 0xb99465, 0, 0.06, 0.1, 2.7, 0.12, 2.2);
+    place(camp, 25.5, 23.3, 0.15);
+    if (game)
+      for (const node of world.nodes.filter((n) => n.kind !== "wood")) {
+        const prop = new THREE.Group();
+        if (node.kind === "stone") {
+          kit.orb(prop, 0x94988b, 0, 0.3, 0, 0.58, 0.47, 0.56);
+          kit.orb(prop, 0xaeb09c, 0.4, 0.16, 0.15, 0.28, 0.24, 0.33);
+        } else {
+          kit.mesh(prop, kit.roundedBox, 0xae885b, 0, 0.35, 0, 0.85, 0.7, 0.75);
+          for (const x of [-0.25, 0.25])
+            kit.block(prop, 0x65746a, x, 0.37, 0.4, 0.055, 0.64, 0.03);
+          kit.block(prop, 0xf0d6a0, 0, 0.73, 0, 0.65, 0.035, 0.58);
+        }
+        place(prop, node.x, node.y);
+      }
     // A wood store, a bench and original small props around the cottage.
     const shed = new THREE.Group();
     for (const x of [-0.9, 0.9])
@@ -373,18 +454,23 @@ export function createVisualScene(
       place(rock, x, z, 0.5);
     }
     // Fence sections leave a broad entrance in front of the garden.
-    for (const [x, z, rot] of [
-      [6.5, 19.1, 0],
-      [8.5, 19.1, 0],
-      [13.8, 19.1, 0],
-      [15.8, 19.1, 0],
-      [16.8, 18.1, Math.PI / 2],
-      [16.8, 16.1, Math.PI / 2],
-      [16.8, 14.1, Math.PI / 2],
-      [4.3, 16.8, Math.PI / 2],
-      [4.3, 18.8, Math.PI / 2],
-    ])
-      place(createFence(kit), x, z, rot);
+    const fenceVisuals = new Map<string, THREE.Group>();
+    if (game)
+      for (const fence of world.fences) {
+        const index = Number(fence.id.split("-")[1]);
+        fenceVisuals.set(
+          fence.id,
+          place(
+            createFence(kit, 1),
+            fence.x,
+            fence.y,
+            DECOR_FENCES[index]?.[2] ?? 0,
+          ),
+        );
+      }
+    else
+      for (const [x, z, rot] of DECOR_FENCES)
+        place(createFence(kit), x, z, rot);
     // Grouped grass tufts and blossoms form the edge of the clearing.
     for (let i = 0; i < 60; i++) {
       const x = 3.8 + ((i * 7.37) % 15.5),
@@ -431,12 +517,33 @@ export function createVisualScene(
     shadow.position.y = -0.88;
     shadow.receiveShadow = true;
     scene.add(shadow);
+    if (game)
+      ownedInstances.push(
+        ...batchStatic(
+          root,
+          new Set<THREE.Object3D>([
+            ...farmers,
+            ...cropVisuals.map((c) => c.plot),
+            ...fenceVisuals.values(),
+          ]),
+        ),
+      );
     const resize = () => {
       if (disposed) return;
       const width = Math.max(1, container.clientWidth),
         height = Math.max(1, container.clientHeight),
         aspect = width / height;
-      const halfHeight = Math.max(9.2, 11.7 / aspect);
+      const halfHeight = game
+        ? overview
+          ? Math.max(15.5, 17 / aspect)
+          : Math.max(5.8, 4.1 / aspect)
+        : Math.max(9.2, 11.7 / aspect);
+      if (game) {
+        const x = overview ? 14.5 : game.player.x,
+          z = overview ? 14 : game.player.y;
+        camera.position.set(x + 20.2, 27, z + 23.2);
+        camera.lookAt(x, 1, z);
+      }
       camera.left = -halfHeight * aspect;
       camera.right = halfHeight * aspect;
       camera.top = halfHeight;
@@ -469,6 +576,11 @@ export function createVisualScene(
     publish();
     const walk = (x: number, y: number, seconds: number) => {
       if (disposed || !player) return;
+      if (game) {
+        const length = Math.max(1, Math.hypot(x, y));
+        game.move((x * 0.8 + y * 0.6) / length, (-x * 0.6 + y * 0.8) / length);
+        return;
+      }
       const previousX = player.position.x,
         previousZ = player.position.z;
       const length = Math.max(1, Math.hypot(x, y));
@@ -504,7 +616,263 @@ export function createVisualScene(
         container.dispatchEvent(new CustomEvent("visual-context-lost"));
       }
     };
-    return { walk, resize: safeResize, dispose };
+    if (!game) return { walk, resize: safeResize, dispose };
+    const arm = player.getObjectByName("right-arm") as THREE.Group;
+    kit.block(arm, 0x424c46, 0.29, -1.1, 0.3, 0.09, 0.2, 0.13);
+    kit.block(arm, 0x66766b, 0.29, -1.03, 0.42, 0.11, 0.13, 0.3);
+    const enemyVisuals = new Map<string, THREE.Group>(),
+      bagVisuals = new Map<string, THREE.Group>();
+    const beam = kit.mesh(
+      root,
+      kit.cylinder,
+      0xe5c478,
+      0,
+      0,
+      0,
+      0.025,
+      1,
+      0.025,
+    );
+    beam.visible = false;
+    const aimLine = kit.mesh(
+      root,
+      kit.cylinder,
+      0xf2df9c,
+      0,
+      0,
+      0,
+      0.015,
+      1.7,
+      0.015,
+    );
+    aimLine.visible = false;
+    const up = new THREE.Vector3(0, 1, 0);
+    const markerGeo = new THREE.RingGeometry(0.31, 0.36, 24);
+    kit.extra.push(markerGeo);
+    const markerMat = new THREE.MeshBasicMaterial({
+      color: 0xf1e5ba,
+      depthTest: false,
+      transparent: true,
+      opacity: 0.6,
+    });
+    const marker = new THREE.Mesh(markerGeo, markerMat);
+    marker.rotation.x = -Math.PI / 2;
+    marker.renderOrder = 10;
+    root.add(marker);
+    ownedMaterials.push(markerMat);
+    const playDispose = dispose;
+    const raycaster = new THREE.Raycaster(),
+      ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
+      point = new THREE.Vector3();
+    const aim = (x: number, y: number, firing: boolean) =>
+      game.aim(x * 0.8 + y * 0.6, -x * 0.6 + y * 0.8, firing);
+    const aimAt = (x: number, y: number) => {
+      const box = renderer.domElement.getBoundingClientRect();
+      raycaster.setFromCamera(
+        new THREE.Vector2(
+          ((x - box.x) / box.width) * 2 - 1,
+          -((y - box.y) / box.height) * 2 + 1,
+        ),
+        camera,
+      );
+      if (raycaster.ray.intersectPlane(ground, point))
+        game.aim(point.x - game.player.x, point.z - game.player.y, true);
+    };
+    const update = (dt: number) => {
+      const previousX = player.position.x,
+        previousZ = player.position.z;
+      game.tick(dt * 1000);
+      player.position.set(game.player.x, 0, game.player.y);
+      animateFarmer(
+        player,
+        Math.hypot(
+          player.position.x - previousX,
+          player.position.z - previousZ,
+        ),
+        Math.atan2(
+          game.player.move.x || player.position.x - previousX,
+          game.player.move.y || player.position.z - previousZ,
+        ),
+        dt,
+      );
+      if (game.player.firing) {
+        const heading = Math.atan2(game.player.aim.x, game.player.aim.y);
+        player.rotation.y +=
+          Math.atan2(
+            Math.sin(heading - player.rotation.y),
+            Math.cos(heading - player.rotation.y),
+          ) *
+          (1 - Math.exp(-12 * dt));
+      }
+      cropVisuals.forEach(({ plants, soil }, i) => {
+        const crop = world.crops[i];
+        plants.visible = crop.stage !== "empty";
+        plants.scale.setScalar(
+          crop.stage === "ready"
+            ? 1
+            : 0.4 + 0.6 * Math.min(1, crop.growth / 45000),
+        );
+        soil.material = kit.material(crop.watered ? 0x594633 : 0x70563a);
+      });
+      for (const [id, model] of fenceVisuals)
+        if (!world.fences.some((f) => f.id === id)) {
+          root.remove(model);
+          model.clear();
+          fenceVisuals.delete(id);
+        }
+      for (const [id, model] of enemyVisuals)
+        if (!world.zombies.some((z) => z.id === id)) {
+          root.remove(model);
+          model.clear();
+          enemyVisuals.delete(id);
+        }
+      for (const enemy of world.zombies) {
+        let model = enemyVisuals.get(enemy.id);
+        if (!model) {
+          model = new THREE.Group();
+          for (const x of [-0.14, 0.14]) {
+            kit.block(model, 0x596856, x, 0.26, 0, 0.19, 0.44, 0.24);
+            kit.block(model, 0x536552, x * 2.5, 0.88, 0.23, 0.14, 0.18, 0.5);
+          }
+          kit.orb(model, 0x677e72, 0, 0.79, 0, 0.33, 0.4, 0.23);
+          kit.mesh(
+            model,
+            kit.characterBall,
+            0xa1b48b,
+            0,
+            1.31,
+            0.03,
+            0.26,
+            0.29,
+            0.25,
+          );
+          for (const x of [-0.09, 0.09])
+            kit.orb(model, 0x665a3d, x, 1.34, 0.265, 0.032, 0.038, 0.018);
+          root.add(model);
+          enemyVisuals.set(enemy.id, model);
+        }
+        model.position.set(enemy.x, 0, enemy.y);
+        model.rotation.y = Math.atan2(
+          game.player.x - enemy.x,
+          game.player.y - enemy.y,
+        );
+      }
+      for (const [id, model] of bagVisuals)
+        if (!world.backpacks.some((b) => b.id === id)) {
+          root.remove(model);
+          model.clear();
+          bagVisuals.delete(id);
+        }
+      for (const bag of world.backpacks)
+        if (!bagVisuals.has(bag.id)) {
+          const model = new THREE.Group();
+          kit.mesh(
+            model,
+            kit.roundedBox,
+            0xd0ac6b,
+            0,
+            0.27,
+            0,
+            0.4,
+            0.54,
+            0.25,
+          );
+          place(model, bag.x, bag.y);
+          bagVisuals.set(bag.id, model);
+        }
+      const shot = world.shots[world.shots.length - 1];
+      beam.visible = !!shot;
+      if (shot) {
+        const dir = new THREE.Vector3(shot.toX - shot.x, 0, shot.toY - shot.y),
+          length = dir.length();
+        beam.position.set(
+          (shot.x + shot.toX) / 2,
+          0.9,
+          (shot.y + shot.toY) / 2,
+        );
+        beam.scale.y = length;
+        beam.quaternion.setFromUnitVectors(up, dir.normalize());
+      }
+      aimLine.visible = game.aiming;
+      aimLine.position.set(
+        game.player.x + game.player.aim.x * 0.9,
+        0.06,
+        game.player.y + game.player.aim.y * 0.9,
+      );
+      if (aimLine.visible)
+        aimLine.quaternion.setFromUnitVectors(
+          up,
+          new THREE.Vector3(
+            game.player.aim.x,
+            0,
+            game.player.aim.y,
+          ).normalize(),
+        );
+      marker.position.set(game.player.x, 0.04, game.player.y);
+      publish();
+      renderer.domElement.dataset.aiming = String(game.aiming);
+      renderer.domElement.dataset.phase = world.phase;
+      renderer.domElement.dataset.harvested = String(game.harvested);
+      renderer.domElement.dataset.time = String(world.timeMs);
+      onUpdate?.();
+    };
+    let lastDrawKey = "";
+    const loop = (time: number) => {
+      if (disposed) return;
+      frame = requestAnimationFrame(loop);
+      if (document.hidden || game.paused) {
+        lastTime = time;
+        return;
+      }
+      if (lastTime && time - lastTime < 33) return;
+      const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.1) : 0.033;
+      lastTime = time;
+      try {
+        update(dt);
+        const x = overview ? 14.5 : game.player.x,
+          z = overview ? 14 : game.player.y;
+        camera.position.set(x + 20.2, 27, z + 23.2);
+        camera.lookAt(x, 1, z);
+        const drawKey = [
+          game.player.x,
+          game.player.y,
+          game.player.aim.x,
+          game.player.aim.y,
+          game.aiming,
+          player.getObjectByName("left-leg")!.rotation.x,
+          ...world.crops.map(
+            (c) => `${c.stage}:${c.watered}:${Math.floor(c.growth / 1000)}`,
+          ),
+          ...world.zombies.map((z) => `${z.x}:${z.y}`),
+          world.fences.length,
+          world.backpacks.length,
+          world.shots.length,
+        ].join("|");
+        if (drawKey !== lastDrawKey) {
+          renderer.render(scene, camera);
+          lastDrawKey = drawKey;
+        }
+        renderer.domElement.dataset.drawCalls = String(
+          renderer.info.render.calls,
+        );
+      } catch {
+        playDispose();
+        container.dispatchEvent(new CustomEvent("visual-context-lost"));
+      }
+    };
+    update(0);
+    frame = requestAnimationFrame(loop);
+    return {
+      walk,
+      aim,
+      aimAt,
+      resize: safeResize,
+      dispose: playDispose,
+      toggleMap() {
+        overview = !overview;
+        safeResize();
+      },
+    };
   } catch (error) {
     dispose();
     throw error;

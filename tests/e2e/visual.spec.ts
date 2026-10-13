@@ -174,3 +174,90 @@ test("shows the rebuilt male character in a separate close-up viewer", async ({
     0,
   );
 });
+
+test("plays the local crop loop and can request a zombie wave", async ({
+  page,
+}) => {
+  await page.goto("/visual.html");
+  const canvas = page.locator('canvas[data-ready="true"]');
+  await expect(canvas).toBeVisible();
+  await page.getByRole("button", { name: /Cosechar/ }).click();
+  await expect(canvas).toHaveAttribute("data-harvested", "1");
+  await page.getByRole("button", { name: /Sembrar/ }).click();
+  await page.getByRole("button", { name: /Regar/ }).click();
+  await expect(page.getByRole("button", { name: /Creciendo/ })).toBeDisabled();
+  await page.getByRole("button", { name: "Adelantar oleada" }).click();
+  await expect(canvas).toHaveAttribute("data-phase", "wave");
+  await expect(
+    page.getByRole("status", { name: "Estado de la granja" }),
+  ).toContainText("Zombis");
+  await page.getByRole("button", { name: "Ver mapa [M]" }).click();
+  await page.screenshot({ path: "test-results/playable-map.png" });
+  await page.getByRole("button", { name: "Ver mapa [M]" }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(
+    page.getByRole("status", { name: "Estado de la granja" }),
+  ).toContainText("Pausa");
+  const time = await canvas.getAttribute("data-time");
+  await page.waitForTimeout(200);
+  expect(await canvas.getAttribute("data-time")).toBe(time);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect.poll(() => canvas.getAttribute("data-time")).not.toBe(time);
+});
+
+test("mobile farming supports two independent touch sticks and portrait layout", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 844, height: 390 },
+    hasTouch: true,
+  });
+  const page = await context.newPage();
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("http://127.0.0.1:5180/visual.html");
+  const canvas = page.locator('canvas[data-ready="true"]');
+  await expect(canvas).toBeVisible();
+  await page.getByRole("button", { name: /Cosechar/ }).click();
+  await expect(canvas).toHaveAttribute("data-harvested", "1");
+  const move = page.getByRole("slider", { name: "Mover personaje" }),
+    aim = page.getByRole("slider", { name: "Apuntar", exact: true });
+  const mb = (await move.boundingBox())!,
+    ab = (await aim.boundingBox())!;
+  await move.dispatchEvent("pointerdown", {
+    pointerId: 1,
+    pointerType: "touch",
+    clientX: mb.x + mb.width / 2,
+    clientY: mb.y + mb.height / 2,
+  });
+  await move.dispatchEvent("pointermove", {
+    pointerId: 1,
+    pointerType: "touch",
+    clientX: mb.x,
+    clientY: mb.y + mb.height / 2,
+  });
+  await aim.dispatchEvent("pointerdown", {
+    pointerId: 2,
+    pointerType: "touch",
+    clientX: ab.x + ab.width / 2,
+    clientY: ab.y + ab.height / 2,
+  });
+  await aim.dispatchEvent("pointermove", {
+    pointerId: 2,
+    pointerType: "touch",
+    clientX: ab.x + ab.width,
+    clientY: ab.y + ab.height / 2,
+  });
+  await expect(canvas).toHaveAttribute("data-aiming", "true");
+  await move.dispatchEvent("pointercancel", { pointerId: 1 });
+  await expect(canvas).toHaveAttribute("data-aiming", "true");
+  await aim.dispatchEvent("pointercancel", { pointerId: 2 });
+  await expect(canvas).toHaveAttribute("data-aiming", "false");
+  await page.screenshot({ path: "test-results/playable-mobile.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(move).toBeVisible();
+  await expect(aim).toBeVisible();
+  await page.screenshot({ path: "test-results/playable-portrait.png" });
+  expect(errors).toEqual([]);
+  await context.close();
+});
