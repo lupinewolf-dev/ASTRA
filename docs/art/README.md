@@ -33,3 +33,9 @@ Los assets están definidos en `apps/client/src/visual/models.ts` mediante `crea
 ## Estilo caricaturesco implementado
 
 La propuesta caricaturesca aprobada fue adaptada a modelos 3D procedurales: cabezas grandes con cara y pelo agrupados, ojos simples, sonrisa curva, materiales mates y prendas/accesorios de bordes redondeados. Mochila, martillo, pañuelos, jardinero y bolso de semillas mantienen la paleta del concepto. La caminata y el giro se conservan. Las capturas `visual-desktop.png` y `visual-mobile.png` muestran esta implementación real; la lámina generada es una referencia artística y tiene mayor detalle que estos modelos.
+
+## Modelo revisado integrado y detalles del mapa
+
+El personaje masculino de `male-asset.ts` está ahora en la granja `/visual.html`, con piernas y brazos articulados y la caminata conectada a los controles. El visor `/visual.html?personaje=1` sigue disponible. La protagonista mantiene su modelo anterior.
+
+Los caminos, manchas de césped y arroyo tienen contornos curvos; se agregaron grupos de flores, piedras de paso, un buzón y un farol junto al sendero. Son detalles visuales, sin interacciones nuevas. Las partidas originales y el área caminable del patio mantienen su comportamiento.

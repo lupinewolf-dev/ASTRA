@@ -1,3 +1,4 @@
+import { createMaleAsset } from "./male-asset.js";
 import * as THREE from "three";
 import type { World } from "../../../../packages/shared/src/types.js";
 import {
@@ -30,6 +31,7 @@ export function createVisualScene(
     kit = new ModelKit(),
     sun = new THREE.DirectionalLight(0xffd89d, 3.0),
     shadowMat = new THREE.ShadowMaterial({ opacity: 0.1 });
+  const characterAssets: ReturnType<typeof createMaleAsset>[] = [];
   let disposed = false,
     observer: ResizeObserver | undefined;
   const lose = (event: Event) => {
@@ -42,6 +44,7 @@ export function createVisualScene(
     observer?.disconnect();
     renderer.domElement.removeEventListener("webglcontextlost", lose);
     sun.shadow.dispose();
+    characterAssets.forEach((asset) => asset.dispose());
     kit.dispose();
     shadowMat.dispose();
     renderer.dispose();
@@ -92,7 +95,14 @@ export function createVisualScene(
     };
     const patch = (points: number[][], color: number, y: number) => {
       const s = new THREE.Shape();
-      points.forEach(([x, z], i) => (i ? s.lineTo(x, -z) : s.moveTo(x, -z)));
+      const curve = new THREE.CatmullRomCurve3(
+        points.map(([x, z]) => new THREE.Vector3(x, 0, z)),
+        true,
+        "centripetal",
+      );
+      curve
+        .getPoints(80)
+        .forEach((p, i) => (i ? s.lineTo(p.x, -p.z) : s.moveTo(p.x, -p.z)));
       s.closePath();
       const geo = new THREE.ShapeGeometry(s);
       kit.extra.push(geo);
@@ -198,14 +208,14 @@ export function createVisualScene(
         [2.9, 8],
         [3.6, 12],
         [2.8, 15],
-        [3.1, 19],
-        [2.4, 21],
-        [1.7, 20],
-        [2, 16],
+        [3.8, 18.8],
+        [4.1, 20.4],
+        [3.4, 20.2],
+        [2.6, 17],
         [2.4, 12],
         [1.9, 8],
         [2.1, 5],
-      ],
+      ].map(([x, z]) => [x + 1, z]),
       0x608b8c,
       0.024,
     );
@@ -217,24 +227,26 @@ export function createVisualScene(
         kit.pole(bridge, 0x846848, x, 0.54, z, 0.075, 0.94);
     for (const z of [-0.75, 0.75])
       kit.block(bridge, 0x93764d, 0, 0.94, z, 2.3, 0.1, 0.1);
-    place(bridge, 2.5, 14.3);
+    place(bridge, 3.5, 14.3);
     place(createHouse(kit), 10, 9.6);
     world.crops.forEach((crop, i) =>
       place(createCropPlot(kit, i), crop.x, crop.y),
     );
-    const farmers = Object.values(world.players).map((p, i) =>
-      place(
-        createFarmer(
-          i === 0 ? 0xbd704d : 0x638d8b,
-          kit,
-          i === 0 ? "masculine" : "feminine",
-        ),
+    const farmers = Object.values(world.players).map((p, i) => {
+      if (i === 0) {
+        const asset = createMaleAsset();
+        characterAssets.push(asset);
+        return place(asset.group, p.x, p.y, 0.3, 0.66);
+      }
+      return place(
+        createFarmer(0x638d8b, kit, "feminine"),
         p.x,
         p.y,
-        i === 0 ? 0.3 : -0.25,
+        -0.25,
         1.13,
-      ),
-    );
+      );
+    });
+    renderer.domElement.dataset.characterModel = "male-cartoon-sculpt";
     const forest: [[number, number, number], ...[number, number, number][]] = [
       [5, 5, 0],
       [7, 3, 1],
@@ -256,6 +268,68 @@ export function createVisualScene(
       [19, 17.4],
     ])
       place(createPine(kit), x, z, 0, 0.9);
+    // Small farm props outside the walking yard, sharing the scene geometry pool.
+    const mailbox = new THREE.Group();
+    kit.pole(mailbox, 0x806747, 0, 0.55, 0, 0.09, 1.1);
+    kit.mesh(mailbox, kit.roundedBox, 0x6c8e88, 0, 1.15, 0, 0.65, 0.46, 0.8);
+    kit.block(mailbox, 0xc3a16b, 0, 1.02, 0.42, 0.48, 0.04, 0.03);
+    kit.block(mailbox, 0xb76d4c, 0.39, 1.28, 0.05, 0.035, 0.35, 0.23);
+    place(mailbox, 14.5, 17.4, -0.35);
+    const lamp = new THREE.Group();
+    kit.pole(lamp, 0x796747, 0, 1.0, 0, 0.065, 2.0);
+    kit.block(lamp, 0x665d40, 0.22, 1.98, 0, 0.55, 0.07, 0.08);
+    kit.mesh(lamp, kit.roundedBox, 0xe2ba6e, 0.43, 1.77, 0, 0.25, 0.36, 0.25);
+    for (const y of [1.55, 1.98])
+      kit.block(lamp, 0x56665d, 0.43, y, 0, 0.34, 0.075, 0.34);
+    place(lamp, 13.8, 15.2);
+    for (const [x, z] of [
+      [5.1, 12.8],
+      [4.1, 17.1],
+      [15.8, 14.2],
+      [16.1, 18.1],
+      [3.7, 10.5],
+      [18.2, 13.3],
+    ]) {
+      const flowers = new THREE.Group();
+      kit.orb(flowers, 0x698b52, 0, 0.22, 0, 0.5, 0.3, 0.42);
+      for (let i = 0; i < 3; i++) {
+        const fx = (i - 1) * 0.25,
+          fz = (i % 2) * 0.24,
+          fy = 0.47 + (i % 2) * 0.1;
+        kit.pole(flowers, 0x68834b, fx, fy / 2, fz, 0.018, fy);
+        for (let j = 0; j < 5; j++) {
+          const angle = (j / 5) * Math.PI * 2;
+          kit.mesh(
+            flowers,
+            kit.characterBall,
+            i % 2 ? 0xe8c66a : 0xe6d9b3,
+            fx + Math.cos(angle) * 0.08,
+            fy,
+            fz + Math.sin(angle) * 0.08,
+            0.07,
+            0.03,
+            0.07,
+          ).castShadow = false;
+        }
+        kit.orb(flowers, 0xc99d54, fx, fy + 0.02, fz, 0.045, 0.035, 0.045);
+      }
+      place(flowers, x, z, 0, 0.9);
+    }
+    for (let i = 0; i < 7; i++) {
+      const stone = new THREE.Group();
+      kit.mesh(
+        stone,
+        kit.roundedBox,
+        i % 2 ? 0xbfae84 : 0xddd0a2,
+        0,
+        0.035,
+        0,
+        0.48,
+        0.07,
+        0.34,
+      );
+      place(stone, 10.4 + Math.sin(i * 0.8) * 0.7, 15.1 + i * 0.5, i * 0.6);
+    }
     place(createWorkbench(kit), 14.1, 12.5, 0.25);
     place(createBarrel(kit), 12.85, 11.15);
     place(createBarrel(kit), 13.6, 11.4, 0, 0.8);

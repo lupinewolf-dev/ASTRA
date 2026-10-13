@@ -146,9 +146,26 @@ export function createMaleAsset() {
       0,
       0,
     );
+  const rig = (
+    parts: THREE.Object3D[],
+    name: string,
+    x: number,
+    y: number,
+    z: number,
+  ) => {
+    const pivot = new THREE.Group();
+    pivot.name = name;
+    pivot.position.set(x, y, z);
+    group.add(pivot);
+    for (const part of parts) {
+      part.position.sub(pivot.position);
+      pivot.add(part);
+    }
+  };
   // Grounded chunky footwear and slightly bent trouser legs.
   for (const side of [-1, 1]) {
     const x = side * 0.26;
+    const legStart = group.children.length;
     sweep(
       palette.pants,
       [
@@ -191,6 +208,13 @@ export function createMaleAsset() {
         ],
         0.012,
       );
+    rig(
+      group.children.slice(legStart),
+      side < 0 ? "left-leg" : "right-leg",
+      x,
+      1.42,
+      0,
+    );
   }
   ellipsoid(palette.coat, 0, 1.9, 0, 0.53, 0.67, 0.33);
   panel(
@@ -227,6 +251,7 @@ export function createMaleAsset() {
     );
     rounded(0xa95838, side * 0.35, 1.64, 0.37, 0.22, 0.25, 0.07);
     rounded(0xcd885a, side * 0.35, 1.78, 0.41, 0.24, 0.075, 0.045);
+    const armStart = group.children.length;
     sweep(
       palette.coat,
       [
@@ -273,6 +298,13 @@ export function createMaleAsset() {
       ellipsoid(palette.skin, 0.74, 1.2, 0.21, 0.15, 0.19, 0.12);
       ellipsoid(palette.skin, 0.62, 1.25, 0.24, 0.07, 0.11, 0.075);
     }
+    rig(
+      group.children.slice(armStart),
+      side < 0 ? "left-arm" : "right-arm",
+      side * 0.45,
+      2.27,
+      0,
+    );
     rounded(0x8a623b, side * 0.3, 2.0, 0.38, 0.085, 0.68, 0.065).rotation.z =
       side * 0.08;
     rounded(palette.brass, side * 0.3, 1.98, 0.425, 0.12, 0.1, 0.035);
@@ -419,6 +451,11 @@ export function createMaleAsset() {
     ],
     0.014,
   );
+  const body = new THREE.Group();
+  body.name = "body";
+  const parts = [...group.children];
+  group.add(body);
+  parts.forEach((part) => body.add(part));
   group.name = "male-cartoon-sculpt";
   let disposed = false;
   return {

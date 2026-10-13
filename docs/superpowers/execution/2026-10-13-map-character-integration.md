@@ -1,0 +1,7 @@
+# Integración del modelo revisado y detalles de la granja
+
+El usuario autorizó integrar el último modelo y continuar mejorando el mapa y los diseños. Checkpoint acotado: reemplazo del personaje masculino en la escena 3D, conservación de controles, mejora de caminos y pequeños detalles del entorno. La protagonista conserva su modelo previo y el juego original sigue separado de esta demo visual.
+
+El modelo nuevo tiene pivotes de hombros y caderas conservando la geometría y la postura revisadas. Comparte la animación de distancia y giro de los personajes existentes; sus recursos se liberan al disponer la escena. Se ajustó la escala dentro del mapa. Los contornos de caminos, césped y arroyo usan curvas centrípetas; el arroyo queda dentro del borde del terreno. Se agregaron flores, piedras de paso, buzón y farol fuera del patio o al ras del camino. No se agregaron mecánicas ni colisiones; se mantiene el límite del patio.
+
+RED→GREEN: la prueba de articulaciones del asset falló antes de añadir los pivotes y pasó después. Se comprobó la liberación de geometrías y materiales sin duplicaciones. Validación: 34 pruebas unitarias/integración, 10 de navegador y build exitosos. Después del ajuste final de escala y arroyo se repitieron build y las cuatro pruebas de render de escritorio/móvil y controles de teclado/táctiles. Capturas reales inspeccionadas y actualizadas. Teléfonos físicos pendientes.
