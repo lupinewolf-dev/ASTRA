@@ -1,5 +1,17 @@
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 export class ModelKit {
+  readonly characterBall = new THREE.SphereGeometry(1, 16, 10);
+  readonly roundedBox = new RoundedBoxGeometry(1, 1, 1, 2, 0.12);
+  readonly characterMaterials = new Map<number, THREE.MeshStandardMaterial>();
+  characterMaterial(color: number) {
+    let m = this.characterMaterials.get(color);
+    if (!m) {
+      m = new THREE.MeshStandardMaterial({ color, roughness: 1 });
+      this.characterMaterials.set(color, m);
+    }
+    return m;
+  }
   readonly box = new THREE.BoxGeometry(1, 1, 1);
   readonly ball = new THREE.IcosahedronGeometry(1, 1);
   readonly cylinder = new THREE.CylinderGeometry(1, 1, 1, 8);
@@ -74,6 +86,8 @@ export class ModelKit {
   }
   dispose() {
     for (const g of [
+      this.characterBall,
+      this.roundedBox,
       this.box,
       this.ball,
       this.cylinder,
@@ -81,7 +95,11 @@ export class ModelKit {
       ...this.extra,
     ])
       g.dispose();
-    for (const m of this.materials.values()) m.dispose();
+    for (const m of [
+      ...this.materials.values(),
+      ...this.characterMaterials.values(),
+    ])
+      m.dispose();
   }
 }
 export function createHouse(k = new ModelKit()) {
@@ -236,6 +254,34 @@ export function createFarmer(
   k = new ModelKit(),
   style: FarmerStyle = "masculine",
 ) {
+  const rounded = (
+    g: THREE.Group,
+    color: number,
+    x: number,
+    y: number,
+    z: number,
+    sx: number,
+    sy: number,
+    sz: number,
+  ) => {
+    const m = k.mesh(g, k.roundedBox, color, x, y, z, sx, sy, sz);
+    m.material = k.characterMaterial(color);
+    return m;
+  };
+  const soft = (
+    g: THREE.Group,
+    color: number,
+    x: number,
+    y: number,
+    z: number,
+    sx: number,
+    sy: number,
+    sz: number,
+  ) => {
+    const m = k.mesh(g, k.characterBall, color, x, y, z, sx, sy, sz);
+    m.material = k.characterMaterial(color);
+    return m;
+  };
   const feminine = style === "feminine";
   const shirt = feminine ? 0xeee0bd : color;
   const hairColor = feminine ? 0x593b2b : 0x302d2a;
@@ -249,7 +295,7 @@ export function createFarmer(
     leg.name = index === 0 ? "left-leg" : "right-leg";
     leg.position.set(x, 0.66, 0);
     body.add(leg);
-    k.block(
+    rounded(
       leg,
       feminine ? color : 0x394a49,
       0,
@@ -259,50 +305,50 @@ export function createFarmer(
       0.53,
       0.25,
     );
-    k.block(leg, 0x49382c, 0, -0.53, 0.09, 0.25, 0.18, 0.41);
-    k.block(leg, 0xc3a477, 0, -0.61, 0.09, 0.26, 0.04, 0.42);
+    rounded(leg, 0x49382c, 0, -0.53, 0.09, 0.25, 0.18, 0.41);
+    rounded(leg, 0xc3a477, 0, -0.61, 0.09, 0.26, 0.04, 0.42);
   }
-  k.orb(body, shirt, 0, 0.83, 0, feminine ? 0.31 : 0.37, 0.42, 0.27);
+  soft(body, shirt, 0, 0.83, 0, feminine ? 0.31 : 0.37, 0.42, 0.27);
   if (feminine) {
     const overalls = new THREE.Group();
     overalls.name = "overalls";
     body.add(overalls);
-    k.block(overalls, color, 0, 0.86, 0.23, 0.39, 0.4, 0.1);
-    k.block(overalls, color, 0, 0.63, 0, 0.51, 0.19, 0.36);
+    rounded(overalls, color, 0, 0.86, 0.23, 0.39, 0.4, 0.1);
+    rounded(overalls, color, 0, 0.63, 0, 0.51, 0.19, 0.36);
     for (const x of [-0.15, 0.15]) {
-      k.block(overalls, color, x, 1.04, 0.18, 0.075, 0.32, 0.085);
-      k.orb(overalls, 0xe3be71, x, 0.99, 0.295, 0.026, 0.026, 0.016);
+      rounded(overalls, color, x, 1.04, 0.18, 0.075, 0.32, 0.085);
+      soft(overalls, 0xe3be71, x, 0.99, 0.295, 0.026, 0.026, 0.016);
     }
-    k.block(overalls, 0x476f70, 0, 0.82, 0.3, 0.23, 0.14, 0.026);
+    rounded(overalls, 0x476f70, 0, 0.82, 0.3, 0.23, 0.14, 0.026);
     const bag = new THREE.Group();
     bag.name = "seed-bag";
     body.add(bag);
-    k.block(bag, 0xb28b55, -0.38, 0.7, 0.08, 0.27, 0.33, 0.28);
-    k.block(bag, 0xd4b57c, -0.38, 0.84, 0.12, 0.29, 0.11, 0.3);
-    k.block(bag, 0x786347, -0.38, 0.72, 0.235, 0.07, 0.15, 0.025);
-    const strap = k.block(bag, 0xb9945b, -0.08, 0.98, 0.3, 0.06, 0.65, 0.04);
+    rounded(bag, 0xb28b55, -0.38, 0.7, 0.08, 0.27, 0.33, 0.28);
+    rounded(bag, 0xd4b57c, -0.38, 0.84, 0.12, 0.29, 0.11, 0.3);
+    rounded(bag, 0x786347, -0.38, 0.72, 0.235, 0.07, 0.15, 0.025);
+    const strap = rounded(bag, 0xb9945b, -0.08, 0.98, 0.3, 0.06, 0.65, 0.04);
     strap.rotation.z = -0.65;
     // A small seed packet peeking out of the bag.
-    k.block(bag, 0xe9ddaf, -0.38, 0.98, 0.07, 0.13, 0.16, 0.035);
-    k.orb(bag, 0x799352, -0.38, 0.99, 0.1, 0.035, 0.04, 0.018);
+    rounded(bag, 0xe9ddaf, -0.38, 0.98, 0.07, 0.13, 0.16, 0.035);
+    soft(bag, 0x799352, -0.38, 0.99, 0.1, 0.035, 0.04, 0.018);
   } else {
     const pack = new THREE.Group();
     pack.name = "tool-backpack";
     body.add(pack);
-    k.block(pack, 0x78603d, 0, 0.93, -0.3, 0.46, 0.51, 0.25);
-    k.block(pack, 0xb3965b, 0, 1.14, -0.33, 0.48, 0.13, 0.27);
+    rounded(pack, 0x78603d, 0, 0.93, -0.3, 0.46, 0.51, 0.25);
+    rounded(pack, 0xb3965b, 0, 1.14, -0.33, 0.48, 0.13, 0.27);
     for (const x of [-0.16, 0.16])
-      k.block(pack, 0x473f30, x, 0.94, -0.44, 0.055, 0.48, 0.025);
+      rounded(pack, 0x473f30, x, 0.94, -0.44, 0.055, 0.48, 0.025);
     const roll = k.pole(pack, 0x8d9b78, 0, 1.27, -0.32, 0.12, 0.49);
     roll.rotation.z = Math.PI / 2;
     k.pole(pack, 0xbda071, 0.31, 1.02, -0.3, 0.035, 0.58);
-    k.block(pack, 0x6f7f80, 0.31, 1.32, -0.3, 0.25, 0.1, 0.12);
-    k.block(body, 0x654936, 0, 0.66, 0.2, 0.56, 0.075, 0.065);
-    k.block(body, 0xd6b267, 0.07, 0.66, 0.25, 0.08, 0.08, 0.025);
+    rounded(pack, 0x6f7f80, 0.31, 1.32, -0.3, 0.25, 0.1, 0.12);
+    rounded(body, 0x654936, 0, 0.66, 0.2, 0.56, 0.075, 0.065);
+    rounded(body, 0xd6b267, 0.07, 0.66, 0.25, 0.08, 0.08, 0.025);
     for (const x of [-0.13, 0.13])
-      k.block(body, 0xa95b3e, x, 0.87, 0.25, 0.13, 0.14, 0.04);
+      rounded(body, 0xa95b3e, x, 0.87, 0.25, 0.13, 0.14, 0.04);
     for (const y of [0.78, 0.93, 1.08])
-      k.orb(body, 0xe0bb77, 0, y, 0.28, 0.022, 0.022, 0.018);
+      soft(body, 0xe0bb77, 0, y, 0.28, 0.022, 0.022, 0.018);
   }
   for (const [index, x] of [-shoulder, shoulder].entries()) {
     const arm = new THREE.Group();
@@ -312,26 +358,25 @@ export function createFarmer(
     body.add(arm);
     k.pole(arm, shirt, 0, -0.23, 0, feminine ? 0.095 : 0.115, 0.49);
     k.pole(arm, feminine ? 0xd6c79e : 0x9c533d, 0, -0.43, 0, 0.12, 0.085);
-    k.orb(arm, 0xd9af85, 0, -0.51, 0.06, 0.105, 0.12, 0.105);
-    if (index === 1) {
-      k.block(arm, 0x383f3b, 0, -0.6, 0.13, 0.09, 0.23, 0.13);
-      k.block(arm, 0x515e55, 0, -0.59, 0.22, 0.1, 0.13, 0.28);
-    }
+    soft(arm, 0xd9af85, 0, -0.51, 0.06, 0.105, 0.12, 0.105);
   }
-  k.orb(body, 0xe5bc90, 0, 1.43, 0.035, 0.29, 0.31, 0.26);
+  const headPartsStart = body.children.length;
+  soft(body, 0xe5bc90, 0, 1.43, 0.035, 0.34, 0.33, 0.29);
+  for (const x of [-0.33, 0.33])
+    soft(body, 0xe5bc90, x, 1.43, 0.025, 0.075, 0.1, 0.065);
   const hair = new THREE.Group();
   hair.name = feminine ? "tied-hair" : "tousled-hair";
   body.add(hair);
-  k.orb(hair, hairColor, 0, 1.66, -0.04, 0.305, 0.19, 0.275);
+  soft(hair, hairColor, 0, 1.66, -0.04, 0.305, 0.19, 0.275);
   if (feminine) {
-    k.orb(hair, hairColor, 0, 1.48, -0.21, 0.28, 0.25, 0.15);
-    k.orb(hair, hairColor, 0.23, 1.6, -0.28, 0.19, 0.21, 0.17);
-    k.orb(hair, hairColor, 0.27, 1.36, -0.29, 0.12, 0.2, 0.12);
-    k.orb(hair, 0xe4b368, 0.24, 1.49, -0.29, 0.14, 0.045, 0.13);
-    const fringe = k.orb(hair, hairColor, -0.11, 1.62, 0.2, 0.2, 0.12, 0.09);
+    soft(hair, hairColor, 0, 1.48, -0.21, 0.28, 0.25, 0.15);
+    soft(hair, hairColor, 0.23, 1.6, -0.28, 0.19, 0.21, 0.17);
+    soft(hair, hairColor, 0.27, 1.36, -0.29, 0.12, 0.2, 0.12);
+    soft(hair, 0xe4b368, 0.24, 1.49, -0.29, 0.14, 0.045, 0.13);
+    const fringe = soft(hair, hairColor, -0.11, 1.62, 0.2, 0.2, 0.12, 0.09);
     fringe.rotation.z = -0.35;
-    k.orb(body, 0xd28e73, -0.18, 1.36, 0.25, 0.045, 0.025, 0.015);
-    k.orb(body, 0xd28e73, 0.18, 1.36, 0.25, 0.045, 0.025, 0.015);
+    soft(body, 0xd28e73, -0.18, 1.36, 0.25, 0.045, 0.025, 0.015);
+    soft(body, 0xd28e73, 0.18, 1.36, 0.25, 0.045, 0.025, 0.015);
   } else {
     for (const [x, y, z] of [
       [-0.18, 1.77, 0.03],
@@ -339,14 +384,23 @@ export function createFarmer(
       [0.19, 1.73, 0.1],
       [-0.12, 1.63, 0.22],
     ])
-      k.orb(hair, hairColor, x, y, z, 0.13, 0.11, 0.14);
+      soft(hair, hairColor, x, y, z, 0.13, 0.11, 0.14);
     for (const x of [-0.11, 0.11])
-      k.block(body, hairColor, x, 1.53, 0.276, 0.095, 0.022, 0.026);
+      rounded(body, hairColor, x, 1.53, 0.276, 0.095, 0.022, 0.026);
   }
-  k.block(body, 0x965f48, 0, 1.3, 0.276, 0.075, 0.018, 0.018);
+  const smileCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.07, 1.33, 0.296),
+    new THREE.Vector3(0, 1.3, 0.31),
+    new THREE.Vector3(0.07, 1.33, 0.296),
+  ]);
+  const smileGeometry = new THREE.TubeGeometry(smileCurve, 8, 0.008, 4, false);
+  k.extra.push(smileGeometry);
+  const smile = k.mesh(body, smileGeometry, 0x965f48, 0, 0, 0, 1, 1, 1);
+  smile.name = "smile";
+  const headParts = body.children.slice(headPartsStart);
   // Warm cloth and a broad face keep the characters readable from above.
-  k.block(body, feminine ? 0xf0d5a0 : 0x789281, 0, 1.17, 0.09, 0.4, 0.1, 0.33);
-  k.block(
+  rounded(body, feminine ? 0xf0d5a0 : 0x789281, 0, 1.17, 0.09, 0.4, 0.1, 0.33);
+  rounded(
     body,
     feminine ? 0xf0d5a0 : 0x789281,
     -0.16,
@@ -357,11 +411,22 @@ export function createFarmer(
     0.06,
   );
   for (const x of [-0.105, 0.105])
-    k.orb(body, 0x302f29, x, 1.46, 0.275, 0.03, 0.035, 0.021);
-  k.orb(body, 0xd1a275, 0, 1.38, 0.3, 0.04, 0.045, 0.035);
+    soft(body, 0x302f29, x * 1.3, 1.46, 0.31, 0.033, 0.05, 0.02);
+  soft(body, 0xd1a275, 0, 1.39, 0.33, 0.045, 0.04, 0.04);
+  // Include eyes and nose, but leave scarves attached to the torso.
+  headParts.push(...body.children.slice(-3));
+  const head = new THREE.Group();
+  head.name = "cartoon-head";
+  head.position.y = 1.46;
+  head.scale.setScalar(1.35);
+  body.add(head);
+  for (const part of headParts) {
+    part.position.y -= 1.46;
+    head.add(part);
+  }
   if (!feminine)
     for (const x of [-0.17, 0.17])
-      k.block(body, 0x9d8256, x, 0.96, 0.235, 0.055, 0.58, 0.025);
+      rounded(body, 0x9d8256, x, 0.96, 0.235, 0.055, 0.58, 0.025);
   return g;
 }
 

@@ -29,3 +29,7 @@ Al soltar el control, cambiar de ventana o ocultar la página, el movimiento se 
 La muestra incorpora dos modelos 3D originales creados con geometría compartida: un personaje masculino con pelo oscuro despeinado, chaqueta terracota, cinturón y mochila con martillo; y uno femenino con pelo castaño recogido, jardinero verde azulado, pañuelo crema y bolso con un paquete de semillas. Se distinguen también las siluetas, puños, botones, bolsillos y detalles de la cara. Ambos conservan articulaciones compatibles con la caminata. En la prueba actual se controla al personaje masculino y el femenino permanece quieto.
 
 Los assets están definidos en `apps/client/src/visual/models.ts` mediante `createFarmer(color, kit, style)`. Son modelos procedurales integrados, todavía no archivos GLB ni un editor de personalización. Las capturas muestran el render real de la escena.
+
+## Estilo caricaturesco implementado
+
+La propuesta caricaturesca aprobada fue adaptada a modelos 3D procedurales: cabezas grandes con cara y pelo agrupados, ojos simples, sonrisa curva, materiales mates y prendas/accesorios de bordes redondeados. Mochila, martillo, pañuelos, jardinero y bolso de semillas mantienen la paleta del concepto. La caminata y el giro se conservan. Las capturas `visual-desktop.png` y `visual-mobile.png` muestran esta implementación real; la lámina generada es una referencia artística y tiene mayor detalle que estos modelos.

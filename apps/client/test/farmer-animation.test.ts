@@ -84,3 +84,23 @@ describe("invented character assets", () => {
     kit.dispose();
   });
 });
+
+it("uses an oversized cartoon head with all facial features moving together", () => {
+  const kit = new models.ModelKit();
+  for (const style of ["masculine", "feminine"] as const) {
+    const farmer = models.createFarmer(0xbd704d, kit, style);
+    const head = farmer.getObjectByName("cartoon-head");
+    expect(head).toBeDefined();
+    const bounds = new THREE.Box3()
+      .setFromObject(head!)
+      .getSize(new THREE.Vector3());
+    expect(bounds.x).toBeGreaterThan(0.85);
+    expect(
+      head!.getObjectByName(
+        style === "masculine" ? "tousled-hair" : "tied-hair",
+      ),
+    ).toBeDefined();
+    expect(farmer.getObjectByName("smile")?.parent).toBe(head);
+  }
+  kit.dispose();
+});
