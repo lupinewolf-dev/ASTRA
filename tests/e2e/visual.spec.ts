@@ -152,3 +152,25 @@ test("touch joystick moves and stops on release", async ({ browser }) => {
   expect(await canvas.getAttribute("data-player-x")).toBe(stopped);
   await context.close();
 });
+
+test("shows the rebuilt male character in a separate close-up viewer", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto("/visual.html?personaje=1");
+  await expect(page.getByText("PERSONAJE · MODELO 3D REAL")).toBeVisible();
+  await expect(page.locator('canvas[data-ready="true"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ver espalda" })).toBeVisible();
+  await page.screenshot({ path: "test-results/character-front.png" });
+  await page.getByRole("button", { name: "Ver espalda" }).click();
+  await expect(page.locator("canvas")).toHaveAttribute("data-view", "back");
+  await page.screenshot({ path: "test-results/character-back.png" });
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.astraVisual!.dispose());
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Ver espalda" })).toHaveCount(
+    0,
+  );
+});

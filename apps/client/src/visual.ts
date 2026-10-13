@@ -1,3 +1,4 @@
+import { createCharacterPreview } from "./visual/character-preview.js";
 import { bindWalking } from "./visual/controls.js";
 import { createWorld, addPlayer } from "../../../packages/shared/src/world.js";
 import { createVisualScene, type VisualScene } from "./visual/scene.js";
@@ -56,8 +57,17 @@ const lost = () => {
   error();
 };
 try {
-  scene = createVisualScene(container, world);
-  unbindWalking = bindWalking(scene);
+  if (new URLSearchParams(location.search).get("personaje") === "1") {
+    document.querySelector(".badge")!.textContent =
+      "PERSONAJE · MODELO 3D REAL";
+    document.querySelector("footer p")!.textContent =
+      "Propuesta modelada · Revisión antes de llevarla a la granja";
+    document.title = "ASTRA · Revisión de personaje";
+    scene = createCharacterPreview(container);
+  } else {
+    scene = createVisualScene(container, world);
+    unbindWalking = bindWalking(scene);
+  }
   container.addEventListener("visual-context-lost", lost);
   window.addEventListener("pagehide", hide);
   window.addEventListener("pageshow", show);

@@ -179,3 +179,29 @@ footer p {
     line-height: 1.6;
   }
 }
+.character-toolbar {
+  position: fixed;
+  bottom: 105px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 2;
+}
+.character-toolbar button {
+  border: 1px solid #745b3d55;
+  border-radius: 20px;
+  background: #fff8ebdd;
+  padding: 10px 18px;
+  color: #4d493b;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.character-toolbar button:focus-visible {
+  outline: 3px solid #8b9568;
+}
+@media (max-height: 500px) {
+  .character-toolbar {
+    bottom: 65px;
+  }
+}
