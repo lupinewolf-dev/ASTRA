@@ -55,3 +55,13 @@ Gráficos originales provisionales generados con figuras. El navegador emulado n
 - `apps/client`: Phaser, pantalla de cuenta, interfaz y controles.
 - `tests/e2e`: pruebas de navegador para dos jugadores y controles móviles.
 - `docs/superpowers`: diseño y plan aprobados.
+
+## Primera muestra visual 3D
+
+La nueva dirección visual se prueba por separado. Con `npm.cmd run dev` activo, abre en tu PC `http://localhost:5173/visual.html`. En el celular, usa la dirección de tu PC en la misma red y añade `/visual.html`.
+
+Es una escena estática con casa, huerta, árboles y dos personajes; todavía no permite jugar ni cambia tu partida. La página principal conserva el juego anterior. Las capturas reales están en `docs/art/README.md`.
+
+Para actualizar desde un ZIP nuevo de GitHub, copia los archivos de código sobre tu carpeta actual **conservando `data` y cualquier `.env` existente**. Detén el juego con Ctrl+C antes de actualizar; después ejecuta `npm.cmd ci` y `npm.cmd run dev`. No reemplaces tu carpeta de partida por una carpeta vacía.
+
+`npm run build` incluye ambas páginas. Con `npm start`, la muestra se abre en el puerto 3001 con la misma ruta `/visual.html`. Para comprobar solo esta etapa: `npm run test:visual` (requiere Chromium de Playwright, o `PLAYWRIGHT_CHROMIUM_EXECUTABLE` con la ruta de tu Chromium instalado).

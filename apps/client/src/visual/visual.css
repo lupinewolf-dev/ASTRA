@@ -1,0 +1,144 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color: #34483b;
+  background: #c2cdb5;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: radial-gradient(
+    ellipse at 50% 43%,
+    #e3dfc1 0%,
+    #c7d1b7 52%,
+    #a9c0b1 100%
+  );
+  overflow: hidden;
+}
+#visual-scene {
+  width: 100vw;
+  height: 100dvh;
+  min-height: 250px;
+}
+canvas {
+  display: block;
+}
+header {
+  position: fixed;
+  top: 27px;
+  left: 35px;
+  right: 35px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1;
+  pointer-events: none;
+}
+.wordmark {
+  font:
+    600 30px Georgia,
+    serif;
+  letter-spacing: 5px;
+  color: #354838;
+}
+.wordmark span {
+  display: block;
+  font: 700 8px system-ui;
+  letter-spacing: 2.7px;
+  margin-top: 7px;
+  color: #5d7059;
+}
+header a {
+  pointer-events: auto;
+  color: #425541;
+  font-size: 11px;
+  text-decoration: none;
+  border: 1px solid #596e4b35;
+  border-radius: 20px;
+  padding: 10px 16px;
+  background: #e9e5ca66;
+}
+footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  text-align: center;
+  pointer-events: none;
+}
+.badge {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #617454;
+  border: 1px solid #5f744735;
+  border-radius: 14px;
+  padding: 5px 10px;
+  background: #e6e5c966;
+}
+footer p {
+  font:
+    italic 17px Georgia,
+    serif;
+  color: #435842;
+  margin: 10px 0 0;
+}
+.visual-error {
+  max-width: 460px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #efecd8;
+  border: 1px solid #71866c44;
+  border-radius: 18px;
+  padding: 30px;
+  line-height: 1.7;
+  text-align: center;
+}
+.visual-error a {
+  color: #385b44;
+}
+@media (max-width: 900px) {
+  header {
+    top: 14px;
+    left: 18px;
+    right: 18px;
+  }
+  .wordmark {
+    font-size: 23px;
+  }
+  .wordmark span {
+    font-size: 6px;
+    letter-spacing: 2px;
+  }
+  header a {
+    font-size: 9px;
+    padding: 8px 12px;
+  }
+  footer {
+    bottom: 12px;
+  }
+  footer p {
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .badge {
+    font-size: 7px;
+  }
+}
+@media (orientation: portrait) {
+  footer {
+    bottom: 25px;
+  }
+  header a {
+    max-width: 130px;
+  }
+  footer p {
+    font-size: 15px;
+  }
+}
