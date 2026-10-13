@@ -56,3 +56,31 @@ describe("farmer walking pose", () => {
     expect(farmer.getObjectByName("right-arm")!.rotation.x).toBe(0);
   });
 });
+
+describe("invented character assets", () => {
+  it("builds distinct hairstyles and accessories for both characters", () => {
+    const kit = new models.ModelKit();
+    const male = models.createFarmer(0xbd704d, kit, "masculine");
+    const female = models.createFarmer(0x638d8b, kit, "feminine");
+    expect(male.getObjectByName("tool-backpack")).toBeDefined();
+    expect(male.getObjectByName("tousled-hair")).toBeDefined();
+    expect(female.getObjectByName("tied-hair")).toBeDefined();
+    expect(female.getObjectByName("seed-bag")).toBeDefined();
+    expect(female.getObjectByName("overalls")).toBeDefined();
+    kit.dispose();
+  });
+  it("preserves walking and attached accessories for the feminine asset", () => {
+    const kit = new models.ModelKit();
+    const female = models.createFarmer(0x638d8b, kit, "feminine");
+    const bag = female.getObjectByName("seed-bag");
+    expect(bag).toBeDefined();
+    animate(female, 0.2, 1, 1 / 60);
+    expect(
+      Math.abs(female.getObjectByName("left-leg")!.rotation.x),
+    ).toBeGreaterThan(0.1);
+    expect(bag!.parent?.name).toBe("body");
+    animate(female, 0, 1, 1 / 60);
+    expect(female.getObjectByName("left-leg")!.rotation.x).toBe(0);
+    kit.dispose();
+  });
+});

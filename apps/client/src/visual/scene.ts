@@ -224,7 +224,11 @@ export function createVisualScene(
     );
     const farmers = Object.values(world.players).map((p, i) =>
       place(
-        createFarmer(i === 0 ? 0xbd704d : 0x638d8b, kit),
+        createFarmer(
+          i === 0 ? 0xbd704d : 0x638d8b,
+          kit,
+          i === 0 ? "masculine" : "feminine",
+        ),
         p.x,
         p.y,
         i === 0 ? 0.3 : -0.25,
