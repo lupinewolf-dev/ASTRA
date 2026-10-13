@@ -30,7 +30,8 @@ let scene: VisualScene | undefined,
 const dispose = () => {
   scene?.dispose();
   disposed = true;
-  window.removeEventListener("pagehide", dispose);
+  window.removeEventListener("pagehide", hide);
+  window.removeEventListener("pageshow", show);
   container.removeEventListener("visual-context-lost", lost);
 };
 const error = () => {
@@ -41,6 +42,12 @@ const error = () => {
     '<h1>No se pudo mostrar la granja en 3D</h1><p>Esta muestra necesita WebGL. Prueba un navegador actualizado con aceleración gráfica habilitada.</p><a href="/">Volver al juego actual</a>';
   container.replaceChildren(box);
 };
+const hide = (event: PageTransitionEvent) => {
+  if (!event.persisted) dispose();
+};
+const show = (event: PageTransitionEvent) => {
+  if (event.persisted) scene?.resize();
+};
 const lost = () => {
   dispose();
   error();
@@ -48,7 +55,8 @@ const lost = () => {
 try {
   scene = createVisualScene(container, world);
   container.addEventListener("visual-context-lost", lost);
-  window.addEventListener("pagehide", dispose, { once: true });
+  window.addEventListener("pagehide", hide);
+  window.addEventListener("pageshow", show);
   if ((import.meta as unknown as { env: { MODE: string } }).env.MODE === "test")
     window.astraVisual = {
       worldUnchanged: before === JSON.stringify(world),

@@ -58,3 +58,45 @@ test("existing game entry still loads separately", async ({ page }) => {
   await expect(page.locator("#visual-scene")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+test("keeps preview when browser caches and restores the document", async ({
+  page,
+}) => {
+  await page.goto("/visual.html");
+  await expect(page.locator('canvas[data-ready="true"]')).toBeVisible();
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new PageTransitionEvent("pagehide", { persisted: true }),
+    ),
+  );
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new PageTransitionEvent("pageshow", { persisted: true }),
+    ),
+  );
+  await expect(page.locator("canvas")).toBeVisible();
+  expect(await page.evaluate(() => window.astraVisual!.disposed())).toBe(false);
+});
+for (const phase of ["initial", "resize"])
+  test(`render failure during ${phase} cleans up and shows fallback`, async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    const failDraw = () => {
+      WebGL2RenderingContext.prototype.drawElements = function () {
+        throw new Error("Injected renderer failure");
+      };
+    };
+    if (phase === "initial") await page.addInitScript(failDraw);
+    await page.goto("/visual.html");
+    if (phase === "resize") {
+      await expect(page.locator('canvas[data-ready="true"]')).toBeVisible();
+      await page.evaluate(failDraw);
+    }
+    await page.setViewportSize({ width: 900, height: 550 });
+    await expect(page.getByRole("alert")).toBeVisible();
+    await page.setViewportSize({ width: 780, height: 480 });
+    await page.waitForTimeout(150);
+    await expect(page.locator("canvas")).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
