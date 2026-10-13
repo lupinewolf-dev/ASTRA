@@ -100,3 +100,53 @@ for (const phase of ["initial", "resize"])
     await expect(page.locator("canvas")).toHaveCount(0);
     expect(errors).toEqual([]);
   });
+test("keyboard walking moves the farmer and stops after releasing", async ({
+  page,
+}) => {
+  await page.goto("/visual.html");
+  const canvas = page.locator('canvas[data-ready="true"]');
+  await expect(canvas).toBeVisible();
+  const start = await canvas.getAttribute("data-player-x");
+  await page.keyboard.down("d");
+  await expect.poll(() => canvas.getAttribute("data-player-x")).not.toBe(start);
+  await page.keyboard.up("d");
+  await page.waitForTimeout(100);
+  const stopped = await canvas.getAttribute("data-player-x");
+  await page.waitForTimeout(200);
+  expect(await canvas.getAttribute("data-player-x")).toBe(stopped);
+  expect(await page.evaluate(() => window.astraVisual!.worldUnchanged)).toBe(
+    true,
+  );
+});
+test("touch joystick moves and stops on release", async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 844, height: 390 },
+    hasTouch: true,
+  });
+  const page = await context.newPage();
+  await page.goto("http://127.0.0.1:5180/visual.html");
+  const joystick = page.getByRole("slider", { name: "Mover personaje" });
+  await expect(joystick).toBeVisible();
+  const canvas = page.locator("canvas");
+  const start = await canvas.getAttribute("data-player-x");
+  const box = (await joystick.boundingBox())!;
+  await joystick.dispatchEvent("pointerdown", {
+    pointerId: 1,
+    pointerType: "touch",
+    clientX: box.x + box.width / 2,
+    clientY: box.y + box.height / 2,
+  });
+  await joystick.dispatchEvent("pointermove", {
+    pointerId: 1,
+    pointerType: "touch",
+    clientX: box.x + box.width,
+    clientY: box.y + box.height / 2,
+  });
+  await expect.poll(() => canvas.getAttribute("data-player-x")).not.toBe(start);
+  await joystick.dispatchEvent("pointercancel", { pointerId: 1 });
+  await page.waitForTimeout(100);
+  const stopped = await canvas.getAttribute("data-player-x");
+  await page.waitForTimeout(200);
+  expect(await canvas.getAttribute("data-player-x")).toBe(stopped);
+  await context.close();
+});

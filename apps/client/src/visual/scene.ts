@@ -12,6 +12,7 @@ import {
   createBarrel,
 } from "./models.js";
 export interface VisualScene {
+  walk(x: number, y: number, seconds: number): void;
   resize(): void;
   dispose(): void;
 }
@@ -220,7 +221,7 @@ export function createVisualScene(
     world.crops.forEach((crop, i) =>
       place(createCropPlot(kit, i), crop.x, crop.y),
     );
-    Object.values(world.players).forEach((p, i) =>
+    const farmers = Object.values(world.players).map((p, i) =>
       place(
         createFarmer(i === 0 ? 0xbd704d : 0x638d8b, kit),
         p.x,
@@ -378,7 +379,40 @@ export function createVisualScene(
     observer = new ResizeObserver(safeResize);
     observer.observe(container);
     renderer.domElement.addEventListener("webglcontextlost", lose);
-    return { resize: safeResize, dispose };
+    const player = farmers[0];
+    const publish = () => {
+      renderer.domElement.dataset.playerX = player.position.x.toFixed(3);
+      renderer.domElement.dataset.playerZ = player.position.z.toFixed(3);
+    };
+    publish();
+    const walk = (x: number, y: number, seconds: number) => {
+      if (disposed || !player || (!x && !y)) return;
+      const length = Math.max(1, Math.hypot(x, y));
+      // Camera-aligned input: right follows screen right, up follows screen up.
+      const dx = (x * 0.8 + y * 0.6) / length;
+      const dz = (-x * 0.6 + y * 0.8) / length;
+      const distance = Math.min(seconds, 0.05) * 3.2;
+      // This checkpoint keeps walking in the clear yard in front of the house.
+      player.position.x = THREE.MathUtils.clamp(
+        player.position.x + dx * distance,
+        9,
+        12.8,
+      );
+      player.position.z = THREE.MathUtils.clamp(
+        player.position.z + dz * distance,
+        13,
+        18,
+      );
+      player.rotation.y = Math.atan2(dx, dz);
+      publish();
+      try {
+        renderer.render(scene, camera);
+      } catch {
+        dispose();
+        container.dispatchEvent(new CustomEvent("visual-context-lost"));
+      }
+    };
+    return { walk, resize: safeResize, dispose };
   } catch (error) {
     dispose();
     throw error;

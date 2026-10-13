@@ -1,3 +1,4 @@
+import { bindWalking } from "./visual/controls.js";
 import { createWorld, addPlayer } from "../../../packages/shared/src/world.js";
 import { createVisualScene, type VisualScene } from "./visual/scene.js";
 import "./visual/visual.css";
@@ -27,7 +28,9 @@ world.crops.forEach((crop, i) =>
 const before = JSON.stringify(world);
 let scene: VisualScene | undefined,
   disposed = false;
+let unbindWalking: (() => void) | undefined;
 const dispose = () => {
+  unbindWalking?.();
   scene?.dispose();
   disposed = true;
   window.removeEventListener("pagehide", hide);
@@ -54,6 +57,7 @@ const lost = () => {
 };
 try {
   scene = createVisualScene(container, world);
+  unbindWalking = bindWalking(scene);
   container.addEventListener("visual-context-lost", lost);
   window.addEventListener("pagehide", hide);
   window.addEventListener("pageshow", show);

@@ -142,3 +142,40 @@ footer p {
     font-size: 15px;
   }
 }
+.walking-stick {
+  display: none;
+  position: fixed;
+  left: max(22px, env(safe-area-inset-left));
+  bottom: max(25px, env(safe-area-inset-bottom));
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 2px solid #fff8;
+  background: #304c3b35;
+  touch-action: none;
+  user-select: none;
+  z-index: 3;
+  align-items: center;
+  justify-content: center;
+}
+.walking-stick span {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f4edd9bb;
+  box-shadow: 0 2px 8px #263c3440;
+  pointer-events: none;
+}
+@media (pointer: coarse) {
+  .walking-stick {
+    display: flex;
+  }
+  footer {
+    left: 140px;
+    right: 12px;
+  }
+  footer p {
+    font: 11px system-ui;
+    line-height: 1.6;
+  }
+}
