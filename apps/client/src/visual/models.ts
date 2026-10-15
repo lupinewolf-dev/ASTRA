@@ -1,4 +1,8 @@
 import * as THREE from "three";
+import {
+  animateCharacter,
+  type CharacterAction,
+} from "./character-animation.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 export class ModelKit {
   readonly characterBall = new THREE.SphereGeometry(1, 16, 10);
@@ -438,7 +442,12 @@ export function animateFarmer(
   heading: number,
   seconds: number,
   movement?: { x: number; y: number },
+  action?: CharacterAction,
 ) {
+  if (g.userData.articulated) {
+    animateCharacter(g, distance, heading, seconds, movement, action);
+    return;
+  }
   const moving = distance > 0.00001;
   const phase = moving ? (walkingPhases.get(g) ?? 0) + distance * 4 : 0;
   walkingPhases.set(g, phase);
@@ -525,4 +534,14 @@ export function createBarrel(k: ModelKit) {
   for (const y of [0.14, 0.65]) k.pole(g, 0x51594b, 0, y, 0, 0.35, 0.07);
   k.pole(g, 0x6c5032, 0, 0.8, 0, 0.3, 0.02);
   return g;
+}
+
+/** The same hand prop is used in the farm and close-up character viewer. */
+export function equipCharacterPistol(character: THREE.Group, kit: ModelKit) {
+  const socket = character.getObjectByName("weapon-socket") as THREE.Group;
+  const pistol = new THREE.Group();
+  kit.block(pistol, 0x424c46, 0, -0.06, 0, 0.12, 0.2, 0.13);
+  kit.block(pistol, 0x66766b, 0, 0.02, 0.12, 0.14, 0.13, 0.36);
+  socket.add(pistol);
+  return pistol;
 }

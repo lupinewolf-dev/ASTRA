@@ -161,6 +161,7 @@ export function createMaleAsset() {
       part.position.sub(pivot.position);
       pivot.add(part);
     }
+    return pivot;
   };
   // Grounded chunky footwear and slightly bent trouser legs.
   for (const side of [-1, 1]) {
@@ -170,12 +171,25 @@ export function createMaleAsset() {
       palette.pants,
       [
         [x, 1.42, 0],
-        [x * 1.15, 0.96, 0.02],
+        [x * 1.1, 1.18, 0.015],
+        [x * 1.1, 0.94, 0.035],
+      ],
+      [0.21, 0.225, 0.185],
+      1.08,
+    );
+    ellipsoid(palette.pants, x * 1.1, 0.94, 0.035, 0.185, 0.18, 0.19);
+    const kneeStart = group.children.length;
+    sweep(
+      palette.pants,
+      [
+        [x * 1.1, 0.94, 0.035],
+        [x * 1.1, 0.7, 0.035],
         [x * 1.1, 0.47, 0.04],
       ],
-      [0.2, 0.235, 0.17],
-      1.12,
+      [0.18, 0.19, 0.16],
+      1.08,
     );
+    const ankleStart = group.children.length;
     mesh(
       new THREE.LatheGeometry(
         [
@@ -209,6 +223,20 @@ export function createMaleAsset() {
         0.012,
       );
     rig(
+      group.children.slice(ankleStart),
+      side < 0 ? "left-ankle" : "right-ankle",
+      x * 1.1,
+      0.47,
+      0.04,
+    );
+    rig(
+      group.children.slice(kneeStart),
+      side < 0 ? "left-knee" : "right-knee",
+      x * 1.1,
+      0.94,
+      0.035,
+    );
+    rig(
       group.children.slice(legStart),
       side < 0 ? "left-leg" : "right-leg",
       x,
@@ -216,7 +244,28 @@ export function createMaleAsset() {
       0,
     );
   }
-  ellipsoid(palette.coat, 0, 1.9, 0, 0.53, 0.67, 0.33);
+  const torsoStart = group.children.length;
+  // A tapered jacket with broader shoulders and a softer, narrower waist.
+  mesh(
+    new THREE.LatheGeometry(
+      [
+        [0, 1.3],
+        [0.43, 1.3],
+        [0.45, 1.65],
+        [0.51, 2.12],
+        [0.37, 2.3],
+        [0, 2.32],
+      ].map(([r, y]) => new THREE.Vector2(r, y)),
+      32,
+    ),
+    palette.coat,
+    0,
+    0,
+    0,
+    1,
+    1,
+    0.66,
+  );
   panel(
     palette.linen,
     [
@@ -252,59 +301,66 @@ export function createMaleAsset() {
     rounded(0xa95838, side * 0.35, 1.64, 0.37, 0.22, 0.25, 0.07);
     rounded(0xcd885a, side * 0.35, 1.78, 0.41, 0.24, 0.075, 0.045);
     const armStart = group.children.length;
+    const label = side < 0 ? "left" : "right";
+    ellipsoid(palette.coat, side * 0.46, 2.22, 0, 0.21, 0.22, 0.23);
     sweep(
       palette.coat,
       [
-        [side * 0.45, 2.27, 0],
-        [side * 0.64, 2.04, 0.02],
-        [side * 0.68, 1.77, 0.1],
+        [side * 0.46, 2.27, 0],
+        [side * 0.6, 2.06, 0.015],
+        [side * 0.66, 1.83, 0.035],
       ],
-      [0.12, 0.22, 0.2],
-      0.95,
+      [0.17, 0.205, 0.17],
+      1.03,
     );
-    const cuff = rounded(
-      palette.cuff,
-      side * 0.68,
-      1.8,
-      0.105,
-      0.44,
-      0.13,
-      0.4,
+    ellipsoid(palette.skin, side * 0.66, 1.83, 0.035, 0.145, 0.15, 0.15);
+    const elbowStart = group.children.length;
+    rounded(palette.cuff, side * 0.66, 1.83, 0.035, 0.36, 0.13, 0.34);
+    sweep(
+      palette.skin,
+      [
+        [side * 0.66, 1.83, 0.035],
+        [side * 0.68, 1.61, 0.05],
+        [side * 0.68, 1.43, 0.06],
+      ],
+      [0.145, 0.135, 0.105],
     );
-    cuff.rotation.z = side * 0.15;
-    if (side === -1) {
-      sweep(
-        palette.skin,
+    const wristStart = group.children.length;
+    ellipsoid(palette.skin, side * 0.68, 1.32, 0.08, 0.125, 0.155, 0.105);
+    ellipsoid(palette.skin, side * 0.57, 1.37, 0.12, 0.055, 0.09, 0.065);
+    // Shallow finger creases keep the hands readable without separate tiny fingers.
+    for (const y of [1.28, 1.33])
+      curveLine(
+        0xd49468,
         [
-          [-0.68, 1.78, 0.1],
-          [-0.66, 1.73, 0.23],
-          [-0.52, 1.89, 0.38],
-          [-0.36, 2.02, 0.46],
+          [side * 0.62, y, 0.173],
+          [side * 0.68, y - 0.01, 0.186],
+          [side * 0.74, y, 0.173],
         ],
-        [0.155, 0.15, 0.125, 0.11],
+        0.008,
       );
-      ellipsoid(palette.skin, -0.32, 2.04, 0.46, 0.15, 0.16, 0.13);
-      ellipsoid(palette.skin, -0.24, 2.13, 0.44, 0.06, 0.09, 0.08);
-    } else {
-      sweep(
-        palette.skin,
-        [
-          [0.68, 1.78, 0.1],
-          [0.72, 1.51, 0.16],
-          [0.74, 1.29, 0.19],
-        ],
-        [0.16, 0.145, 0.12],
-      );
-      ellipsoid(palette.skin, 0.74, 1.2, 0.21, 0.15, 0.19, 0.12);
-      ellipsoid(palette.skin, 0.62, 1.25, 0.24, 0.07, 0.11, 0.075);
+    if (side > 0) {
+      const socket = new THREE.Group();
+      socket.name = "weapon-socket";
+      socket.position.set(side * 0.68, 1.31, 0.15);
+      socket.rotation.x = Math.PI / 2;
+      group.add(socket);
     }
     rig(
-      group.children.slice(armStart),
-      side < 0 ? "left-arm" : "right-arm",
-      side * 0.45,
-      2.27,
-      0,
+      group.children.slice(wristStart),
+      `${label}-wrist`,
+      side * 0.68,
+      1.43,
+      0.06,
     );
+    rig(
+      group.children.slice(elbowStart),
+      `${label}-elbow`,
+      side * 0.66,
+      1.83,
+      0.035,
+    );
+    rig(group.children.slice(armStart), `${label}-arm`, side * 0.46, 2.27, 0);
     rounded(0x8a623b, side * 0.3, 2.0, 0.38, 0.085, 0.68, 0.065).rotation.z =
       side * 0.08;
     rounded(palette.brass, side * 0.3, 1.98, 0.425, 0.12, 0.1, 0.035);
@@ -331,6 +387,7 @@ export function createMaleAsset() {
     rounded(0xae8050, x, 2.46, -0.58, 0.075, 0.33, 0.045);
   rounded(0xd3a36a, 0.5, 1.94, -0.37, 0.07, 0.61, 0.09).rotation.z = -0.12;
   rounded(0x859091, 0.53, 2.27, -0.37, 0.35, 0.13, 0.14);
+  const headStart = group.children.length;
   // Soft square-jawed face, not a round balloon: deform the sphere at the lower cheeks.
   const faceGeo = sphere.clone();
   const vertices = faceGeo.getAttribute("position");
@@ -344,8 +401,16 @@ export function createMaleAsset() {
   for (const side of [-1, 1]) {
     ellipsoid(palette.skin, side * 0.55, 2.94, 0.015, 0.12, 0.16, 0.1);
     ellipsoid(0xd48c60, side * 0.58, 2.94, 0.088, 0.055, 0.095, 0.019);
-    ellipsoid(0x2e2924, side * 0.19, 3.0, 0.473, 0.052, 0.098, 0.032);
+    const eyeStart = group.children.length;
+    ellipsoid(0x2e2924, side * 0.19, 3.0, 0.473, 0.052, 0.082, 0.032);
     ellipsoid(0xf4e4c3, side * 0.19 - 0.01, 3.034, 0.501, 0.01, 0.015, 0.004);
+    rig(
+      group.children.slice(eyeStart),
+      side < 0 ? "left-eye" : "right-eye",
+      side * 0.19,
+      3.0,
+      0.473,
+    );
     curveLine(
       palette.hair,
       [
@@ -417,6 +482,7 @@ export function createMaleAsset() {
     ],
   ] as [number[][], number[]][])
     sweep(palette.hair, points, radii, 0.65);
+  rig(group.children.slice(headStart), "head", 0, 2.53, 0);
   ellipsoid(palette.skin, 0, 2.47, 0, 0.18, 0.25, 0.17);
   const collar = mesh(
     new THREE.TorusGeometry(0.24, 0.105, 12, 32),
@@ -451,12 +517,14 @@ export function createMaleAsset() {
     ],
     0.014,
   );
+  rig(group.children.slice(torsoStart), "torso", 0, 1.45, 0);
   const body = new THREE.Group();
   body.name = "body";
   const parts = [...group.children];
   group.add(body);
   parts.forEach((part) => body.add(part));
   group.name = "male-cartoon-sculpt";
+  group.userData.articulated = true;
   let disposed = false;
   return {
     group,

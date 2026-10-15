@@ -167,6 +167,27 @@ test("shows the rebuilt male character in a separate close-up viewer", async ({
   await page.getByRole("button", { name: "Ver espalda" }).click();
   await expect(page.locator("canvas")).toHaveAttribute("data-view", "back");
   await page.screenshot({ path: "test-results/character-back.png" });
+  await page.getByRole("button", { name: "Ver frente", exact: true }).click();
+  await page.getByRole("button", { name: "Caminar", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-animation",
+    "walk",
+  );
+  const knee = await page.locator("canvas").getAttribute("data-knee");
+  await expect
+    .poll(() => page.locator("canvas").getAttribute("data-knee"))
+    .not.toBe(knee);
+  await page.screenshot({ path: "test-results/character-walk.png" });
+  await page.getByRole("button", { name: "Apuntar", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveAttribute("data-animation", "aim");
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: "test-results/character-aim.png" });
+  await page.getByRole("button", { name: "Esquivar", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-animation",
+    "dodge",
+  );
+
   expect(errors).toEqual([]);
   await page.evaluate(() => window.astraVisual!.dispose());
   await expect(page.locator("canvas")).toHaveCount(0);

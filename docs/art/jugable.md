@@ -37,3 +37,7 @@ El juego pausa al ocultar la página o cambiar de ventana. Este checkpoint es **
 El movimiento tiene un arranque y frenado breves, giro suave y cámara amortiguada. Al apuntar, puedes caminar de costado. Las oleadas empiezan con cinco enemigos: caminantes (70 de vida), corredores (45, más rápidos) y blindados (140, más lentos). Cada oleada superada añade dos enemigos hasta trece, y ocho puntos de vida por enemigo. Las barras sobre los zombis muestran la vida restante.
 
 La esquiva sigue la dirección de movimiento (o de apuntado si estás quieto), protege brevemente y recarga en 1,8 segundos. No atraviesa obstáculos. Los impactos iluminan al enemigo y recibir daño marca los bordes de la pantalla. **Ayuda** vuelve a abrir las instrucciones y pausa la partida.
+
+## Ver las animaciones del personaje
+
+Abre `/visual.html?personaje=1` para ver el personaje masculino de cerca. Los botones **Reposo, Caminar, Apuntar y Esquivar** permiten revisar sus movimientos; **Ver frente / Ver espalda** cambia el ángulo. El mismo modelo articulado se usa al jugar: hombros, codos, muñecas, cadera, rodillas, tobillos y cabeza, con respiración y parpadeo. La animación sigue siendo estilizada, con piezas articuladas, sin simulación de ropa.

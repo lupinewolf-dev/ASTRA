@@ -65,7 +65,7 @@ try {
     document.querySelector(".badge")!.textContent =
       "PERSONAJE · MODELO 3D REAL";
     document.querySelector("footer p")!.textContent =
-      "Propuesta modelada · Revisión antes de llevarla a la granja";
+      "Modelo articulado · Probá reposo, caminata, apuntado y esquiva";
     document.title = "ASTRA · Revisión de personaje";
     scene = createCharacterPreview(container);
   } else {

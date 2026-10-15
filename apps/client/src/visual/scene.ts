@@ -11,6 +11,7 @@ import {
   createPine,
   createFarmer,
   animateFarmer,
+  equipCharacterPistol,
   createCropPlot,
   createFence,
   createWorkbench,
@@ -621,9 +622,7 @@ export function createVisualScene(
       }
     };
     if (!game) return { walk, resize: safeResize, dispose };
-    const arm = player.getObjectByName("right-arm") as THREE.Group;
-    kit.block(arm, 0x424c46, 0.29, -1.1, 0.3, 0.09, 0.2, 0.13);
-    kit.block(arm, 0x66766b, 0.29, -1.03, 0.42, 0.11, 0.13, 0.3);
+    equipCharacterPistol(player, kit);
     const enemyVisuals = new Map<string, THREE.Group>(),
       bagVisuals = new Map<string, THREE.Group>();
     const beam = kit.mesh(
@@ -707,8 +706,14 @@ export function createVisualScene(
         game.aiming || Math.hypot(movement.x, movement.y)
           ? movement
           : undefined,
+        {
+          aiming: game.aiming,
+          dodging: game.dodging,
+          recoil: game.player.firing
+            ? Math.max(0, (game.player.cooldown - 310) / 140)
+            : 0,
+        },
       );
-      player.getObjectByName("body")!.rotation.z = game.dodging ? -0.18 : 0;
       markerMat.color.setHex(
         game.dodging
           ? 0xf8ce77
@@ -936,6 +941,7 @@ export function createVisualScene(
           focus.x,
           focus.y,
           player.rotation.y,
+          player.userData.poseFrame ?? 0,
           game.dodging,
           game.player.invulnerable > 0,
           game.player.aim.x,

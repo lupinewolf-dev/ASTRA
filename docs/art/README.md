@@ -14,7 +14,7 @@ Estas imágenes son renders de Three.js y muestran la implementación, no imáge
 
 ![Mapa ampliado y primera oleada](playable-map.png)
 
-El personaje masculino utiliza el modelo revisado de `male-asset.ts`, con articulaciones y caminata; la protagonista conserva el modelo anterior y permanece quieta. El visor `/visual.html?personaje=1` muestra el masculino de cerca. Teléfonos físicos pendientes de probar.
+El personaje masculino utiliza el modelo revisado de `male-asset.ts`, con codos, muñecas, rodillas, tobillos, torso y cabeza articulados, respiración y parpadeo; la protagonista conserva el modelo anterior y permanece quieta. El visor `/visual.html?personaje=1` muestra el masculino de cerca y permite probar reposo, caminata, apuntado y esquiva. Teléfonos físicos pendientes de probar.
 
 ## Referencias de diseño
 
@@ -26,3 +26,5 @@ Las imágenes generadas son propuestas de estilo, no modelos 3D ni capturas del 
 - [Modelo 3D revisado de frente](personaje-modelado-frente.png) y [espalda](personaje-modelado-espalda.png).
 
 Los modelos son assets originales procedurales definidos en código; todavía no hay exportación GLB ni editor de personalización. La prueba local reinicia al recargar y permanece separada de las partidas cooperativas del juego anterior.
+
+Capturas reales del personaje articulado: [caminando](personaje-caminando.png) y [apuntando](personaje-apuntando.png).
