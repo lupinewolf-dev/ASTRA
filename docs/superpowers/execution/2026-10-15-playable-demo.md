@@ -1,5 +1,7 @@
 # Demo descargable y respuesta del combate
 
+**Paquete retirado:** el usuario reportó que Microsoft Defender detectó `Trojan:Script/Ulthar.A!ml` en `ASTRA-demo.zip`. Se retiraron el archivo distribuido, los scripts del lanzador y las instrucciones para ejecutarlo. Las comprobaciones funcionales descritas a continuación no son un análisis antivirus; la causa de la detección no está determinada. El desarrollo vuelve al flujo de código fuente con npm. El ZIP retirado tenía SHA-256 `6347710227524e1d3fc0ffe75103c4db37a9dd56d67afbd3c78ab944d23d79c6`. El registro de trabajo original se conserva abajo.
+
 Solicitud: mejorar la versión existente y entregar un demo jugable, manteniendo una tanda acotada por la preferencia previa de consumo del usuario.
 
 Cambios:

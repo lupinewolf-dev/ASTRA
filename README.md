@@ -2,15 +2,20 @@
 
 Juego web cooperativo privado para dos personas: granja isométrica, cultivo, recolección, refugio, cercas y oleadas anunciadas de zombis. Pistola de disparo automático mientras apuntas, munición encontrada/fabricada y combate cuerpo a cuerpo. El mundo se pausa cuando no queda nadie conectado.
 
-## Demo 3D lista para jugar
+## Demo 3D desde el código fuente
 
-[**Descargar ASTRA-demo.zip**](https://github.com/lupinewolf-dev/ASTRA/raw/refs/heads/main/downloads/ASTRA-demo.zip). Extrae todo el ZIP y abre **JUGAR.cmd**. Requiere Node.js 24, sin instalar dependencias ni usar npm. Se abre una ayuda breve y luego la granja: cultivo, fabricación, enemigos variados, esquiva y oleadas progresivas.
+Descarga el código con **Code → Download ZIP**, extrae la carpeta y abre una terminal dentro de ella. Con Node.js 24 instalado:
 
-Deja la ventana abierta mientras juegas. Para celular, usa la dirección que aparece en esa ventana, desde la misma Wi-Fi. Si tenías `npm run dev` abierto, detenlo primero para liberar el puerto 5173.
+```powershell
+npm.cmd ci
+npm.cmd run dev
+```
 
-Esta demo es **local, para una persona y sin guardado**. El proyecto cooperativo original se ejecuta siguiendo las instrucciones de abajo. [Controles y guía](docs/art/jugable.md).
+Abre **http://localhost:5173/visual.html?demo=1** y pulsa Jugar. Mantén la terminal abierta. Para celular usa la IP de la PC, puerto 5173 y la misma ruta, desde la misma Wi-Fi.
 
-Para reconstruir el ZIP desde el código: `python3 scripts/package-demo.py`, con Python 3 y las dependencias npm instaladas.
+Esta demo es **local, para una persona y sin guardado**. [Controles y guía](docs/art/jugable.md).
+
+El paquete compilado `ASTRA-demo.zip` y su lanzador se retiraron tras una detección de Microsoft Defender reportada por el usuario. La causa no está determinada y el código fuente no cuenta con una certificación antivirus. No restaures el paquete bloqueado ni omitas una alerta si aparece al descargar el código.
 
 ## Ejecutar en Windows 10
 

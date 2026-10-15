@@ -2,7 +2,9 @@
 
 Actualiza el código conservando `data`, ejecuta `npm.cmd ci` y `npm.cmd run dev`, y abre `http://localhost:5173/visual.html`. Desde el celular en la misma Wi-Fi, usa la IP de la PC con puerto 5173 y la misma ruta. Mantén la terminal abierta.
 
-También puedes [descargar el demo compilado](https://github.com/lupinewolf-dev/ASTRA/raw/refs/heads/main/downloads/ASTRA-demo.zip), extraerlo y abrir **JUGAR.cmd**, sin npm. La pantalla inicial explica los controles y mantiene la partida pausada hasta pulsar Jugar.
+Para ver la ayuda inicial abre `http://localhost:5173/visual.html?demo=1`. La partida permanece pausada hasta pulsar Jugar.
+
+El paquete compilado y el lanzador de doble clic se retiraron tras una alerta de Defender. Usa la distribución de código fuente indicada arriba; si también genera una alerta, no la omitas. La causa de la detección sigue sin determinarse.
 
 ## Primer objetivo
 
