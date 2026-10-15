@@ -18,6 +18,28 @@ export class LocalFarmGame {
   harvested = 0;
   survived = 0;
   paused = false;
+  dodgeCooldown = 0;
+  private dodgeMs = 0;
+  private dodgeDirection: Point = { x: 1, y: 0 };
+  get dodging() {
+    return this.dodgeMs > 0;
+  }
+  dodge() {
+    if (this.paused || this.dodgeCooldown > 0) return false;
+    const direction =
+      Math.hypot(this.motion.x, this.motion.y) > 0
+        ? this.motion
+        : this.direction;
+    const length = Math.hypot(direction.x, direction.y) || 1;
+    this.dodgeDirection =
+      length && (direction.x || direction.y)
+        ? { x: direction.x / length, y: direction.y / length }
+        : { x: 1, y: 0 };
+    this.dodgeMs = 180;
+    this.dodgeCooldown = 1800;
+    this.player.invulnerable = Math.max(this.player.invulnerable, 260);
+    return true;
+  }
   message = "Cosecha tres parcelas y sobrevive una oleada.";
   private serial = 0;
   private velocity: Point = { x: 0, y: 0 };
@@ -105,6 +127,7 @@ export class LocalFarmGame {
   pause(value: boolean) {
     this.paused = value;
     if (value) {
+      this.dodgeMs = 0;
       this.velocity = { x: 0, y: 0 };
       this.move(0, 0);
       this.aim(0, 0, false);
@@ -157,6 +180,7 @@ export class LocalFarmGame {
       return;
     const dt = Math.min(milliseconds, 100),
       p = this.player;
+    this.dodgeCooldown = Math.max(0, this.dodgeCooldown - dt);
     const braking =
       !Math.hypot(this.motion.x, this.motion.y) ||
       this.motion.x * this.velocity.x + this.motion.y * this.velocity.y < 0;
@@ -167,12 +191,24 @@ export class LocalFarmGame {
       this.velocity[axis] +=
         Math.sign(difference) * Math.min(Math.abs(difference), step);
     }
-    const nx = p.x + (this.velocity.x * dt) / 1000,
-      ny = p.y + (this.velocity.y * dt) / 1000;
-    if (!this.blocked(nx, p.y)) p.x = nx;
-    else this.velocity.x = 0;
-    if (!this.blocked(p.x, ny)) p.y = ny;
-    else this.velocity.y = 0;
+    const dodgeTime = Math.min(this.dodgeMs, dt);
+    const dx =
+      (this.dodgeDirection.x * 9 * dodgeTime +
+        this.velocity.x * (dt - dodgeTime)) /
+      1000;
+    const dy =
+      (this.dodgeDirection.y * 9 * dodgeTime +
+        this.velocity.y * (dt - dodgeTime)) /
+      1000;
+    // Sweep in short steps so a fast dodge cannot jump over thin fences.
+    const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 0.12));
+    for (let i = 0; i < steps; i++) {
+      if (!this.blocked(p.x + dx / steps, p.y)) p.x += dx / steps;
+      else this.velocity.x = 0;
+      if (!this.blocked(p.x, p.y + dy / steps)) p.y += dy / steps;
+      else this.velocity.y = 0;
+    }
+    this.dodgeMs = Math.max(0, this.dodgeMs - dt);
     p.move = { x: 0, y: 0 };
     p.inputAge = 0;
     p.aim = this.direction;
@@ -191,6 +227,7 @@ export class LocalFarmGame {
     const backpacks = this.world.backpacks.length;
     tickWorld(this.world, dt, [this.playerId]);
     if (this.world.backpacks.length > backpacks) {
+      this.dodgeMs = 0;
       this.velocity = { x: 0, y: 0 };
       this.move(0, 0);
       this.aim(0, 0, false);

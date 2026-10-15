@@ -261,3 +261,49 @@ test("mobile farming supports two independent touch sticks and portrait layout",
   expect(errors).toEqual([]);
   await context.close();
 });
+
+test("demo welcome pauses time, starts play and exposes a working dodge", async ({
+  page,
+}) => {
+  await page.goto("/visual.html?demo=1");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  const canvas = page.locator('canvas[data-ready="true"]');
+  const time = await canvas.getAttribute("data-time");
+  await page.waitForTimeout(200);
+  expect(await canvas.getAttribute("data-time")).toBe(time);
+  await page.screenshot({ path: "test-results/demo-welcome.png" });
+  await page.getByRole("button", { name: "Jugar", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect.poll(() => canvas.getAttribute("data-time")).not.toBe(time);
+  const x = Number(await canvas.getAttribute("data-player-x"));
+  await page.keyboard.press("Space");
+  const dodge = page.locator('[data-action="dodge"]');
+  await expect(dodge).toBeDisabled();
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-player-x")))
+    .toBeGreaterThan(x + 0.8);
+  // Software WebGL can advance simulation time more slowly than wall time.
+  await expect(dodge).toBeEnabled({ timeout: 15000 });
+  await page.getByRole("button", { name: "Ayuda", exact: true }).click();
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+});
+
+test("aim updates while moving with a stationary mouse and clears on blur", async ({
+  page,
+}) => {
+  await page.goto("/visual.html");
+  const canvas = page.locator('canvas[data-ready="true"]');
+  await expect(canvas).toBeVisible();
+  await page.mouse.move(900, 390);
+  await expect(canvas).toHaveAttribute("data-aiming", "true");
+  const aim = await canvas.getAttribute("data-aim-x");
+  await page.keyboard.down("s");
+  await expect.poll(() => canvas.getAttribute("data-aim-x")).not.toBe(aim);
+  await page.keyboard.up("s");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(canvas).toHaveAttribute("data-aiming", "false");
+});

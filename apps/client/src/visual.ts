@@ -70,6 +70,11 @@ try {
     scene = createCharacterPreview(container);
   } else {
     const game = new LocalFarmGame(world);
+    if (new URLSearchParams(location.search).get("demo") === "1") {
+      const link = document.querySelector<HTMLAnchorElement>("header a")!;
+      link.href = "?demo=1";
+      link.textContent = "Reiniciar demo";
+    }
     document.body.classList.add("playing");
     document.querySelector(".badge")!.textContent = "GRANJA JUGABLE · LOCAL";
     document.querySelector("footer p")!.textContent =

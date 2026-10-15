@@ -668,9 +668,14 @@ export function createVisualScene(
     const raycaster = new THREE.Raycaster(),
       ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
       point = new THREE.Vector3();
-    const aim = (x: number, y: number, firing: boolean) =>
+    let mousePosition: { x: number; y: number } | undefined;
+    const aim = (x: number, y: number, firing: boolean) => {
+      mousePosition = undefined;
       game.aim(x * 0.8 + y * 0.6, -x * 0.6 + y * 0.8, firing);
+    };
     const aimAt = (x: number, y: number) => {
+      if (game.paused) return;
+      mousePosition = { x, y };
       const box = renderer.domElement.getBoundingClientRect();
       raycaster.setFromCamera(
         new THREE.Vector2(
@@ -685,6 +690,7 @@ export function createVisualScene(
     const update = (dt: number) => {
       const previousX = player.position.x,
         previousZ = player.position.z;
+      if (mousePosition) aimAt(mousePosition.x, mousePosition.y);
       game.tick(dt * 1000);
       player.position.set(game.player.x, 0, game.player.y);
       const movement = {
@@ -702,6 +708,15 @@ export function createVisualScene(
           ? movement
           : undefined,
       );
+      player.getObjectByName("body")!.rotation.z = game.dodging ? -0.18 : 0;
+      markerMat.color.setHex(
+        game.dodging
+          ? 0xf8ce77
+          : game.player.invulnerable > 0
+            ? 0xa6e4dc
+            : 0xf1e5ba,
+      );
+      marker.scale.setScalar(game.dodging ? 1.45 : 1);
       cropVisuals.forEach(({ plants, soil }, i) => {
         const crop = world.crops[i];
         plants.visible = crop.stage !== "empty";
@@ -729,11 +744,21 @@ export function createVisualScene(
         if (!model) {
           model = new THREE.Group();
           for (const x of [-0.14, 0.14]) {
-            kit.block(model, 0x596856, x, 0.26, 0, 0.19, 0.44, 0.24);
+            const leg = kit.block(
+              model,
+              0x596856,
+              x,
+              0.26,
+              0,
+              0.19,
+              0.44,
+              0.24,
+            );
+            leg.name = x < 0 ? "left-leg" : "right-leg";
             kit.block(model, 0x536552, x * 2.5, 0.88, 0.23, 0.14, 0.18, 0.5);
           }
           const profile = game.profileFor(enemy.id);
-          kit.orb(
+          const torso = kit.orb(
             model,
             profile.kind === "runner"
               ? 0xb77e4e
@@ -747,6 +772,10 @@ export function createVisualScene(
             0.4,
             0.23,
           );
+          torso.name = "torso";
+          model.userData.torsoMaterial = torso.material;
+          model.userData.hp = enemy.hp;
+          model.userData.hitUntil = 0;
           kit.mesh(
             model,
             kit.characterBall,
@@ -784,7 +813,24 @@ export function createVisualScene(
           root.add(model);
           enemyVisuals.set(enemy.id, model);
         }
-        model.position.set(enemy.x, 0, enemy.y);
+        const walking =
+          Math.hypot(model.position.x - enemy.x, model.position.z - enemy.y) >
+          0.0001;
+        if (enemy.hp < model.userData.hp)
+          model.userData.hitUntil = world.timeMs + 160;
+        model.userData.hp = enemy.hp;
+        const hit = world.timeMs < model.userData.hitUntil;
+        (model.getObjectByName("torso") as THREE.Mesh).material = hit
+          ? kit.material(0xffe4a9)
+          : model.userData.torsoMaterial;
+        const stride = walking
+          ? Math.sin(
+              (world.timeMs / 1000) * game.profileFor(enemy.id).speed * 9,
+            ) * 0.35
+          : 0;
+        model.getObjectByName("left-leg")!.rotation.x = stride;
+        model.getObjectByName("right-leg")!.rotation.x = -stride;
+        model.position.set(enemy.x, hit ? 0.06 : 0, enemy.y);
         model.rotation.y = Math.atan2(
           game.player.x - enemy.x,
           game.player.y - enemy.y,
@@ -856,6 +902,8 @@ export function createVisualScene(
       renderer.domElement.dataset.phase = world.phase;
       renderer.domElement.dataset.harvested = String(game.harvested);
       renderer.domElement.dataset.time = String(world.timeMs);
+      renderer.domElement.dataset.aimX = game.player.aim.x.toFixed(4);
+      renderer.domElement.dataset.aimY = game.player.aim.y.toFixed(4);
       onUpdate?.();
     };
     let lastDrawKey = "";
@@ -888,6 +936,8 @@ export function createVisualScene(
           focus.x,
           focus.y,
           player.rotation.y,
+          game.dodging,
+          game.player.invulnerable > 0,
           game.player.aim.x,
           game.player.aim.y,
           game.aiming,
@@ -896,6 +946,11 @@ export function createVisualScene(
             (c) => `${c.stage}:${c.watered}:${Math.floor(c.growth / 1000)}`,
           ),
           ...world.zombies.map((z) => `${z.x}:${z.y}:${z.hp}`),
+          ...Array.from(
+            enemyVisuals.values(),
+            (model) =>
+              `${model.position.y}:${model.getObjectByName("left-leg")!.rotation.x}`,
+          ),
           world.fences.length,
           world.backpacks.length,
           world.shots.length,

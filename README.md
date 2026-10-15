@@ -2,6 +2,16 @@
 
 Juego web cooperativo privado para dos personas: granja isométrica, cultivo, recolección, refugio, cercas y oleadas anunciadas de zombis. Pistola de disparo automático mientras apuntas, munición encontrada/fabricada y combate cuerpo a cuerpo. El mundo se pausa cuando no queda nadie conectado.
 
+## Demo 3D lista para jugar
+
+[**Descargar ASTRA-demo.zip**](https://github.com/lupinewolf-dev/ASTRA/raw/refs/heads/main/downloads/ASTRA-demo.zip). Extrae todo el ZIP y abre **JUGAR.cmd**. Requiere Node.js 24, sin instalar dependencias ni usar npm. Se abre una ayuda breve y luego la granja: cultivo, fabricación, enemigos variados, esquiva y oleadas progresivas.
+
+Deja la ventana abierta mientras juegas. Para celular, usa la dirección que aparece en esa ventana, desde la misma Wi-Fi. Si tenías `npm run dev` abierto, detenlo primero para liberar el puerto 5173.
+
+Esta demo es **local, para una persona y sin guardado**. El proyecto cooperativo original se ejecuta siguiendo las instrucciones de abajo. [Controles y guía](docs/art/jugable.md).
+
+Para reconstruir el ZIP desde el código: `python3 scripts/package-demo.py`, con Python 3 y las dependencias npm instaladas.
+
 ## Ejecutar en Windows 10
 
 Instala **Node.js 24 LTS** y Git. Abre esta carpeta en VS Code y una terminal PowerShell:
