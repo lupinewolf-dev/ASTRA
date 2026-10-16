@@ -15,8 +15,9 @@ Cosecha **tres parcelas** y sobrevive **una oleada**. Empiezas con cultivos list
 | Acción | PC | Celular |
 |---|---|---|
 | Caminar | WASD o flechas | Joystick izquierdo |
-| Apuntar | Mover el mouse sobre el escenario | Joystick derecho |
-| Disparar | Automático al apuntar con enemigos a alcance | Automático mientras apuntas |
+| Apuntar | Mover el mouse | Joystick derecho |
+| Disparar una bala | Clic izquierdo sobre el mapa o J | Botón Disparar o tocar el mapa |
+| Golpear de cerca | F | Botón Golpear |
 | Esquivar | Espacio | Botón Esquiva |
 | Acción cercana | E | Botón contextual |
 | Fabricar 12 balas | C, cerca de la mesa frente a la casa | Botón Balas |
@@ -34,10 +35,14 @@ La mesa frente a la casa fabrica 12 balas gastando 2 de madera y 2 de piedra. Co
 
 El juego pausa al ocultar la página o cambiar de ventana. Este checkpoint es **local y sin guardado**: al recargar vuelve al comienzo. Las partidas cooperativas anteriores siguen disponibles en `/`. Los gráficos y enemigos siguen siendo provisionales, y falta comprobar rendimiento en iPhone/Android físicos.
 
+Apuntar no gasta balas. Cada clic, pulsación de J o toque de **Disparar** intenta un solo tiro. La pistola espera si está recargando o si ningún zombi está a su alcance; un tiro mal orientado puede fallar y consumir una bala. El golpe con F funciona incluso sin munición.
+
+El mapa local se amplió hacia el este (unos 44 × 30). En el camino hay un cartel con pistas, un pozo que restaura vida con espera y una caja que entrega balas y comida cada cierto tiempo. También hay árboles y piedra para recolectar. **M / Ver mapa** muestra toda la zona.
+
 El movimiento tiene un arranque y frenado breves, giro suave y cámara amortiguada. Al apuntar, puedes caminar de costado. Las oleadas empiezan con cinco enemigos: caminantes (70 de vida), corredores (45, más rápidos) y blindados (140, más lentos). Cada oleada superada añade dos enemigos hasta trece, y ocho puntos de vida por enemigo. Las barras sobre los zombis muestran la vida restante.
 
 La esquiva sigue la dirección de movimiento (o de apuntado si estás quieto), protege brevemente y recarga en 1,8 segundos. No atraviesa obstáculos. Los impactos iluminan al enemigo y recibir daño marca los bordes de la pantalla. **Ayuda** vuelve a abrir las instrucciones y pausa la partida.
 
 ## Ver las animaciones del personaje
 
-Abre `/visual.html?personaje=1` para ver el personaje masculino de cerca. Los botones **Reposo, Caminar, Apuntar y Esquivar** permiten revisar sus movimientos; **Ver frente / Ver espalda** cambia el ángulo. El mismo modelo articulado se usa al jugar: hombros, codos, muñecas, cadera, rodillas, tobillos y cabeza, con respiración y parpadeo. La animación sigue siendo estilizada, con piezas articuladas, sin simulación de ropa.
+Abre `/visual.html?personaje=1` para ver el personaje masculino de cerca. Los botones **Reposo, Caminar, Apuntar, Esquivar y Golpear** permiten revisar sus movimientos y el hacha de mano; **Ver frente / Ver espalda** cambia el ángulo. El mismo modelo articulado se usa al jugar: hombros, codos, muñecas, cadera, rodillas, tobillos y cabeza, con respiración y parpadeo. La animación sigue siendo estilizada, con piezas articuladas, sin simulación de ropa.

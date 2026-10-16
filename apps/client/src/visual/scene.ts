@@ -1,6 +1,12 @@
 import { batchStatic } from "./batch-static.js";
 import { LocalFarmGame } from "./local-game.js";
-import { TERRAIN_OUTLINE, TREE_POSITIONS, DECOR_FENCES } from "./play-map.js";
+import {
+  TERRAIN_OUTLINE,
+  TREE_POSITIONS,
+  DECOR_FENCES,
+  EASTERN_SITES,
+  MAP_CENTER,
+} from "./play-map.js";
 import { createMaleAsset } from "./male-asset.js";
 import * as THREE from "three";
 import type { World } from "../../../../packages/shared/src/types.js";
@@ -12,6 +18,7 @@ import {
   createFarmer,
   animateFarmer,
   equipCharacterPistol,
+  equipCharacterAxe,
   createCropPlot,
   createFence,
   createWorkbench,
@@ -20,6 +27,8 @@ import {
 export interface VisualScene {
   aim?(x: number, y: number, firing: boolean): void;
   aimAt?(x: number, y: number): void;
+  shoot?(): boolean;
+  melee?(): boolean;
   toggleMap?(): void;
   walk(x: number, y: number, seconds: number): void;
   resize(): void;
@@ -85,14 +94,14 @@ export function createVisualScene(
     camera.lookAt(9.8, 1, 11.8);
     scene.add(new THREE.HemisphereLight(0xffedc9, 0x597455, 2.0));
     sun.position.set(-3, 19, 6);
-    sun.target.position.set(10, 0, 10);
+    sun.target.position.set(22, 0, 14);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, {
-      left: -17,
-      right: 17,
-      top: 17,
-      bottom: -17,
+      left: -26,
+      right: 26,
+      top: 26,
+      bottom: -26,
       near: 0.1,
       far: 50,
     });
@@ -350,7 +359,7 @@ export function createVisualScene(
     place(createWorkbench(kit), 10, 12, 0.25);
     place(createBarrel(kit), 12.85, 11.15);
     place(createBarrel(kit), 13.6, 11.4, 0, 0.8);
-    for (const [x, z] of TREE_POSITIONS.slice(8)) {
+    for (const [x, z] of TREE_POSITIONS.slice(8, 12)) {
       const tree = createTree(kit, 1);
       for (let i = 0; i < 5; i++)
         kit.orb(
@@ -386,6 +395,66 @@ export function createVisualScene(
       0xa4ad76,
       0.014,
     );
+    // Eastern meadow: a winding route from the old camp to a small outpost.
+    patch(
+      [
+        [27, 4],
+        [34, 2],
+        [42, 4],
+        [43, 13],
+        [37, 16],
+        [30, 12],
+      ],
+      0x8fa76d,
+      0.011,
+    );
+    patch(
+      [
+        [29, 16],
+        [37, 13],
+        [43, 18],
+        [41, 26],
+        [33, 27],
+        [27, 23],
+      ],
+      0xa4b47a,
+      0.012,
+    );
+    patch(
+      [
+        [24, 23],
+        [28, 21],
+        [33, 21],
+        [39, 20],
+        [42, 21],
+        [39, 22.2],
+        [33, 22.6],
+        [28, 23.3],
+      ],
+      0xc9af7b,
+      0.023,
+    );
+    for (const [x, z] of TREE_POSITIONS.slice(12)) {
+      const tree =
+        Math.round(x + z) % 3 === 0 ? createPine(kit) : createTree(kit);
+      place(tree, x, z, (x + z) * 0.17, 0.72 + ((x * 7 + z) % 4) * 0.055);
+    }
+    const cache = new THREE.Group();
+    kit.block(cache, 0x755d40, 0, 0.34, 0, 1.15, 0.67, 0.8);
+    kit.block(cache, 0xa88b5b, 0, 0.72, 0, 1.2, 0.12, 0.86);
+    for (const x of [-0.38, 0.38])
+      kit.block(cache, 0x59644e, x, 0.42, 0.42, 0.09, 0.7, 0.06);
+    place(cache, EASTERN_SITES.cache.x, EASTERN_SITES.cache.y, 0.18);
+    const well = new THREE.Group();
+    kit.pole(well, 0x93988d, 0, 0.27, 0, 0.55, 0.54);
+    kit.pole(well, 0x9cb8ab, 0, 0.56, 0, 0.43, 0.035);
+    for (const x of [-0.5, 0.5]) kit.pole(well, 0x846b49, x, 1.1, 0, 0.08, 1.4);
+    kit.block(well, 0x9a7850, 0, 1.78, 0, 1.34, 0.13, 0.9);
+    place(well, EASTERN_SITES.well.x, EASTERN_SITES.well.y);
+    const sign = new THREE.Group();
+    kit.pole(sign, 0x806341, 0, 0.72, 0, 0.08, 1.42);
+    kit.block(sign, 0xba9b65, 0, 1.32, 0.04, 1.1, 0.4, 0.12);
+    place(sign, EASTERN_SITES.sign.x, EASTERN_SITES.sign.y, 0.28);
     patch(
       [
         [13.2, 19],
@@ -540,7 +609,7 @@ export function createVisualScene(
         aspect = width / height;
       const halfHeight = game
         ? overview
-          ? Math.max(15.5, 17 / aspect)
+          ? Math.max(18.5, 24 / aspect)
           : Math.max(5.8, 4.1 / aspect)
         : Math.max(9.2, 11.7 / aspect);
       if (game) {
@@ -623,6 +692,7 @@ export function createVisualScene(
     };
     if (!game) return { walk, resize: safeResize, dispose };
     equipCharacterPistol(player, kit);
+    equipCharacterAxe(player, kit);
     const enemyVisuals = new Map<string, THREE.Group>(),
       bagVisuals = new Map<string, THREE.Group>();
     const beam = kit.mesh(
@@ -709,6 +779,7 @@ export function createVisualScene(
         {
           aiming: game.aiming,
           dodging: game.dodging,
+          melee: game.swinging,
           recoil: game.player.firing
             ? Math.max(0, (game.player.cooldown - 310) / 140)
             : 0,
@@ -874,7 +945,7 @@ export function createVisualScene(
           bagVisuals.set(bag.id, model);
         }
       const shot = world.shots[world.shots.length - 1];
-      beam.visible = !!shot;
+      beam.visible = !!shot && !game.swinging;
       if (shot) {
         const dir = new THREE.Vector3(shot.toX - shot.x, 0, shot.toY - shot.y),
           length = dir.length();
@@ -925,8 +996,8 @@ export function createVisualScene(
       try {
         update(dt);
         const target = new THREE.Vector2(
-          overview ? 14.5 : game.player.x,
-          overview ? 14 : game.player.y,
+          overview ? MAP_CENTER.x : game.player.x,
+          overview ? MAP_CENTER.y : game.player.y,
         );
         if (focus.distanceTo(target) > 6 || focus.distanceTo(target) < 0.001)
           focus.copy(target);
@@ -979,13 +1050,15 @@ export function createVisualScene(
       walk,
       aim,
       aimAt,
+      shoot: () => game.shoot(),
+      melee: () => game.melee(),
       resize: safeResize,
       dispose: playDispose,
       toggleMap() {
         overview = !overview;
         focus.set(
-          overview ? 14.5 : game.player.x,
-          overview ? 14 : game.player.y,
+          overview ? MAP_CENTER.x : game.player.x,
+          overview ? MAP_CENTER.y : game.player.y,
         );
         safeResize();
       },

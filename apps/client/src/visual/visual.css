@@ -517,3 +517,12 @@ footer p {
     padding: 9px 12px;
   }
 }
+
+.play-actions [data-action="shoot"] {
+  background: #ac6b4a;
+  color: #fff6de;
+}
+.play-actions [data-action="melee"] {
+  background: #d8c397;
+  color: #3b382a;
+}

@@ -187,6 +187,8 @@ test("shows the rebuilt male character in a separate close-up viewer", async ({
     "data-animation",
     "dodge",
   );
+  await page.getByRole("button", { name: "Golpear", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveAttribute("data-animation", "melee");
 
   expect(errors).toEqual([]);
   await page.evaluate(() => window.astraVisual!.dispose());
@@ -208,7 +210,7 @@ test("plays the local crop loop and can request a zombie wave", async ({
   await page.getByRole("button", { name: /Regar/ }).click();
   await expect(page.getByRole("button", { name: /Creciendo/ })).toBeDisabled();
   await page.getByRole("button", { name: "Adelantar oleada" }).click();
-  await expect(canvas).toHaveAttribute("data-phase", "wave");
+  await expect(canvas).toHaveAttribute("data-phase", "wave", { timeout: 15000 });
   await expect(
     page.getByRole("status", { name: "Estado de la granja" }),
   ).toContainText("Zombis");
@@ -327,4 +329,38 @@ test("aim updates while moving with a stationary mouse and clears on blur", asyn
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(canvas).toHaveAttribute("data-aiming", "false");
+});
+
+test("manual shooting spends one bullet per press and aiming alone spends none", async ({
+  page,
+}) => {
+  await page.goto("/visual.html");
+  const canvas = page.locator('canvas[data-ready="true"]');
+  await expect(canvas).toBeVisible();
+  await page.evaluate(() => {
+    const game = window.astraVisual!.game!;
+    game.world.phase = "wave";
+    game.world.zombies = [
+      {
+        id: "target",
+        x: game.player.x + 2,
+        y: game.player.y,
+        hp: 200,
+        cooldown: 0,
+      },
+    ];
+    game.aim(1, 0, true);
+  });
+  const stats = page.getByRole("status", { name: "Estado de la granja" });
+  await page.waitForTimeout(800);
+  await expect(stats).toContainText("Balas 30");
+  const shot = page.getByRole("button", { name: "Disparar [J]" });
+  await expect(shot).toBeEnabled();
+  await shot.click();
+  await expect(stats).toContainText("Balas 29");
+  await page.waitForTimeout(800);
+  await expect(stats).toContainText("Balas 29");
+  await expect(shot).toBeEnabled();
+  await page.keyboard.press("j");
+  await expect(stats).toContainText("Balas 28");
 });

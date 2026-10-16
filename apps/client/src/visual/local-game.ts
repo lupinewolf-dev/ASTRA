@@ -9,7 +9,12 @@ import {
 } from "../../../../packages/shared/src/world.js";
 import { CONFIG } from "../../../../packages/shared/src/config.js";
 import { distance, isHouse } from "../../../../packages/shared/src/geometry.js";
-import { insideTerrain, TREE_POSITIONS, DECOR_FENCES } from "./play-map.js";
+import {
+  insideTerrain,
+  TREE_POSITIONS,
+  DECOR_FENCES,
+  EASTERN_SITES,
+} from "./play-map.js";
 
 /** Disposable single-player sandbox, sharing the real game's commands and combat rules. */
 export class LocalFarmGame {
@@ -58,7 +63,13 @@ export class LocalFarmGame {
   }
   private motion: Point = { x: 0, y: 0 };
   private direction: Point = { x: 1, y: 0 };
-  private firing = false;
+  private aimingInput = false;
+  private queuedAttack: "pistol" | "melee" | null = null;
+  private meleePoseMs = 0;
+  get swinging() {
+    return this.meleePoseMs > 0;
+  }
+  private siteReadyAt = { cache: 0, well: 0 };
   constructor(source: World) {
     this.world = structuredClone(source);
     this.playerId = Object.keys(this.world.players)[0];
@@ -105,12 +116,23 @@ export class LocalFarmGame {
       n.x = positions[i][0];
       n.y = positions[i][1];
     });
+    this.world.nodes.push(
+      { id: "east-wood", kind: "wood", x: 36, y: 9, remaining: 5, renewMs: 0 },
+      {
+        id: "east-stone",
+        kind: "stone",
+        x: 40,
+        y: 24,
+        remaining: 5,
+        renewMs: 0,
+      },
+    );
   }
   get player() {
     return this.world.players[this.playerId];
   }
   get aiming() {
-    return this.firing;
+    return this.aimingInput;
   }
   get complete() {
     return this.harvested >= 3 && this.survived >= 1;
@@ -119,10 +141,31 @@ export class LocalFarmGame {
     const length = Math.max(1, Math.hypot(x, y));
     this.motion = { x: x / length, y: y / length };
   }
-  aim(x: number, y: number, firing: boolean) {
+  aim(x: number, y: number, pointing: boolean) {
     const length = Math.hypot(x, y);
-    this.direction = length ? { x: x / length, y: y / length } : { x: 0, y: 0 };
-    this.firing = firing && length > 0;
+    if (length) this.direction = { x: x / length, y: y / length };
+    this.aimingInput = pointing && length > 0;
+  }
+  shoot() {
+    if (
+      this.paused ||
+      this.queuedAttack ||
+      this.player.cooldown > 0 ||
+      this.player.inventory.ammo < 1 ||
+      !this.world.zombies.some(
+        (z) => distance(this.player, z) <= CONFIG.gunRange,
+      )
+    )
+      return false;
+    this.queuedAttack = "pistol";
+    return true;
+  }
+  melee() {
+    if (this.paused || this.queuedAttack || this.player.cooldown > 0)
+      return false;
+    this.queuedAttack = "melee";
+    this.meleePoseMs = 250;
+    return true;
   }
   pause(value: boolean) {
     this.paused = value;
@@ -131,12 +174,14 @@ export class LocalFarmGame {
       this.velocity = { x: 0, y: 0 };
       this.move(0, 0);
       this.aim(0, 0, false);
+      this.queuedAttack = null;
+      this.meleePoseMs = 0;
       this.player.move = { x: 0, y: 0 };
       this.player.firing = false;
     }
   }
   private blocked(x: number, y: number) {
-    if (x < 1 || y < 1 || x > 28.5 || y > 26 || !insideTerrain(x, y))
+    if (x < 1 || y < 1 || x > 43.5 || y > 28.5 || !insideTerrain(x, y))
       return true;
     if (x > 7.45 && x < 12.55 && y > 7.2 && y < 11.65) return true;
     if (
@@ -146,6 +191,12 @@ export class LocalFarmGame {
     )
       return true;
     if (TREE_POSITIONS.some(([tx, ty]) => Math.hypot(x - tx, y - ty) < 0.65))
+      return true;
+    if (
+      Object.values(EASTERN_SITES).some(
+        (site) => Math.hypot(x - site.x, y - site.y) < 0.48,
+      )
+    )
       return true;
     const riverPoints = [
       [1.5, 2.9],
@@ -181,6 +232,7 @@ export class LocalFarmGame {
     const dt = Math.min(milliseconds, 100),
       p = this.player;
     this.dodgeCooldown = Math.max(0, this.dodgeCooldown - dt);
+    this.meleePoseMs = Math.max(0, this.meleePoseMs - dt);
     const braking =
       !Math.hypot(this.motion.x, this.motion.y) ||
       this.motion.x * this.velocity.x + this.motion.y * this.velocity.y < 0;
@@ -212,20 +264,15 @@ export class LocalFarmGame {
     p.move = { x: 0, y: 0 };
     p.inputAge = 0;
     p.aim = this.direction;
-    p.weapon = p.inventory.ammo > 0 ? "pistol" : "melee";
-    p.firing =
-      this.firing &&
-      this.world.zombies.some(
-        (z) =>
-          distance(p, z) <=
-          (p.weapon === "pistol" ? CONFIG.gunRange : CONFIG.meleeRange),
-      );
+    p.weapon = this.queuedAttack === "melee" ? "melee" : "pistol";
+    p.firing = this.queuedAttack !== null;
     const phase = this.world.phase;
     const previous = new Map(
       this.world.zombies.map((z) => [z.id, { x: z.x, y: z.y }]),
     );
     const backpacks = this.world.backpacks.length;
     tickWorld(this.world, dt, [this.playerId]);
+    this.queuedAttack = null;
     if (this.world.backpacks.length > backpacks) {
       this.dodgeMs = 0;
       this.velocity = { x: 0, y: 0 };
@@ -275,11 +322,11 @@ export class LocalFarmGame {
         z.hp = maxHp;
         z.x = i % 4 === 0 ? 1 : 4 + ((i * 3) % 21);
         z.y = i % 4 === 2 ? 1 : 3 + ((i * 3) % 19);
-        if (i % 4 === 1) z.x = 28;
+        if (i % 4 === 1) z.x = 42;
         if (i % 4 === 3) z.y = 25;
       });
       this.message =
-        "¡Oleada! Corredores rápidos y blindados resistentes. Apunta para disparar.";
+        "¡Oleada! Apuntá y dispará con clic, botón o J. F pega de cerca.";
     }
     if (phase === "wave" && this.world.phase === "preparation") {
       this.survived++;
@@ -300,6 +347,36 @@ export class LocalFarmGame {
   context() {
     const p = this.player;
     const candidates = [
+      {
+        type: "cache",
+        id: "cache",
+        ...EASTERN_SITES.cache,
+        label:
+          this.world.timeMs >= this.siteReadyAt.cache
+            ? "Buscar provisiones"
+            : `Caja vacía · ${Math.ceil((this.siteReadyAt.cache - this.world.timeMs) / 1000)} s`,
+        enabled: this.world.timeMs >= this.siteReadyAt.cache,
+      },
+      {
+        type: "well",
+        id: "well",
+        ...EASTERN_SITES.well,
+        label:
+          this.player.hp >= 100
+            ? "Vida completa"
+            : this.world.timeMs < this.siteReadyAt.well
+              ? `Pozo recargando · ${Math.ceil((this.siteReadyAt.well - this.world.timeMs) / 1000)} s`
+              : "Beber del pozo",
+        enabled:
+          this.player.hp < 100 && this.world.timeMs >= this.siteReadyAt.well,
+      },
+      {
+        type: "sign",
+        id: "sign",
+        ...EASTERN_SITES.sign,
+        label: "Leer el cartel",
+        enabled: true,
+      },
       ...this.world.crops.map((c) => ({
         type: "crop",
         id: c.id,
@@ -368,6 +445,25 @@ export class LocalFarmGame {
     if (!target.enabled) {
       this.message = target.label;
       return { ok: false, error: this.message };
+    }
+    if (target.type === "cache") {
+      this.player.inventory.ammo += 8;
+      this.player.inventory.food += 1;
+      this.siteReadyAt.cache = this.world.timeMs + 120000;
+      this.message =
+        "Encontraste 8 balas y comida. La caja tardará en reponerse.";
+      return { ok: true };
+    }
+    if (target.type === "well") {
+      this.player.hp = Math.min(100, this.player.hp + 20);
+      this.siteReadyAt.well = this.world.timeMs + 60000;
+      this.message = "Bebiste del pozo y recuperaste 20 de vida.";
+      return { ok: true };
+    }
+    if (target.type === "sign") {
+      this.message =
+        "Al este: caja de provisiones junto al campamento y pozo entre los árboles.";
+      return { ok: true };
     }
     const wasReady =
       target.type === "crop" &&

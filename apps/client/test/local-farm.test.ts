@@ -34,11 +34,11 @@ describe("local playable farm", () => {
     game.move(0, -1);
     advance(game, 1000);
     expect(game.player.y).toBeGreaterThan(11.65);
-    game.player.x = 28;
+    game.player.x = 43;
     game.player.y = 16;
     game.move(1, 0);
     advance(game, 1000);
-    expect(game.player.x).toBeLessThanOrEqual(28.5);
+    expect(game.player.x).toBeLessThanOrEqual(43.5);
   });
   it("harvests, plants, waters and grows using the shared crop rules", () => {
     const { game } = setup();
@@ -64,7 +64,7 @@ describe("local playable farm", () => {
     advance(game, 100);
     expect(game.player.x).toBe(8);
   });
-  it("starts a wave on request and defeats enemies with aimed automatic shots", () => {
+  it("starts a wave on request and defeats enemies with two manual shots", () => {
     const { game } = setup();
     game.startWave();
     game.tick(100);
@@ -81,7 +81,10 @@ describe("local playable farm", () => {
     ];
     const ammo = game.player.inventory.ammo;
     game.aim(1, 0, true);
-    advance(game, 1100);
+    expect(game.shoot()).toBe(true);
+    advance(game, 600);
+    expect(game.shoot()).toBe(true);
+    advance(game, 500);
     expect(game.world.zombies).toHaveLength(0);
     expect(game.player.inventory.ammo).toBeLessThan(ammo);
     expect(game.survived).toBe(1);
@@ -101,7 +104,7 @@ describe("local playable farm", () => {
     expect(game.player.inventory.ammo).toBe(ammo + 18);
   });
 });
-it("does not waste automatic ammunition while enemies are still outside weapon range", () => {
+it("does not spend ammunition when aiming at enemies outside weapon range", () => {
   const { game } = setup();
   game.player.x = 15;
   game.player.y = 15;
@@ -257,4 +260,64 @@ it("cannot dodge through the cottage, fences or while paused", () => {
   expect(game.player.y).toBeGreaterThan(fence.y + 0.55);
   game.pause(true);
   expect(game.dodge()).toBe(false);
+});
+it("aiming does not fire; each manual click fires at most one round", () => {
+  const { game } = setup();
+  game.player.x = 15;
+  game.player.y = 15;
+  game.world.phase = "wave";
+  game.world.zombies = [{ id: "target", x: 18, y: 15, hp: 200, cooldown: 0 }];
+  game.aim(1, 0, true);
+  const ammo = game.player.inventory.ammo;
+  advance(game, 1200);
+  expect(game.player.inventory.ammo).toBe(ammo);
+  expect(game.world.zombies[0].hp).toBe(200);
+  expect(game.shoot()).toBe(true);
+  advance(game, 100);
+  expect(game.player.inventory.ammo).toBe(ammo - 1);
+  advance(game, 1200);
+  expect(game.player.inventory.ammo).toBe(ammo - 1);
+  expect(game.shoot()).toBe(true);
+  advance(game, 100);
+  expect(game.player.inventory.ammo).toBe(ammo - 2);
+});
+it("rejects shooting during cooldown or without bullets and allows a manual melee hit", () => {
+  const { game } = setup();
+  game.player.x = 15;
+  game.player.y = 15;
+  game.world.phase = "wave";
+  game.world.zombies = [{ id: "near", x: 16, y: 15, hp: 100, cooldown: 0 }];
+  game.aim(1, 0, true);
+  expect(game.shoot()).toBe(true);
+  game.tick(16);
+  const ammo = game.player.inventory.ammo;
+  expect(game.shoot()).toBe(false);
+  advance(game, 700);
+  expect(game.player.inventory.ammo).toBe(ammo);
+  game.player.inventory.ammo = 0;
+  expect(game.shoot()).toBe(false);
+  expect(game.melee()).toBe(true);
+  game.tick(16);
+  expect(game.world.zombies[0].hp).toBeLessThan(76);
+});
+it("explores the eastern meadow and uses its cache and well with cooldowns", () => {
+  const { game } = setup();
+  game.player.x = 32;
+  game.player.y = 16;
+  game.move(1, 0);
+  advance(game, 2200);
+  expect(game.player.x).toBeGreaterThan(36);
+  game.move(0, 0);
+  game.player.x = 39;
+  game.player.y = 21;
+  const ammo = game.player.inventory.ammo;
+  expect(game.interact().ok).toBe(true);
+  expect(game.player.inventory.ammo).toBe(ammo + 8);
+  expect(game.interact().ok).toBe(false);
+  game.player.x = 34;
+  game.player.y = 20;
+  game.player.hp = 50;
+  expect(game.interact().ok).toBe(true);
+  expect(game.player.hp).toBeGreaterThan(50);
+  expect(game.interact().ok).toBe(false);
 });

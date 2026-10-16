@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createMaleAsset } from "./male-asset.js";
-import { animateFarmer, equipCharacterPistol, ModelKit } from "./models.js";
+import { animateFarmer, equipCharacterAxe, equipCharacterPistol, ModelKit } from "./models.js";
 import type { VisualScene } from "./scene.js";
 
 export function createCharacterPreview(container: HTMLElement): VisualScene {
@@ -14,6 +14,7 @@ export function createCharacterPreview(container: HTMLElement): VisualScene {
   scene.add(asset.group);
   const kit = new ModelKit();
   const pistol = equipCharacterPistol(asset.group, kit);
+  const axe = equipCharacterAxe(asset.group, kit);
   pistol.visible = false;
   asset.group.rotation.y = -0.15;
   const floorGeo = new THREE.PlaneGeometry(100, 100);
@@ -50,7 +51,7 @@ export function createCharacterPreview(container: HTMLElement): VisualScene {
   const back = document.createElement("button");
   back.textContent = "Ver espalda";
   toolbar.append(front, back);
-  type Motion = "idle" | "walk" | "aim" | "dodge";
+  type Motion = "idle" | "walk" | "aim" | "dodge" | "melee";
   let motion: Motion = "idle",
     frame = 0,
     previousTime = 0,
@@ -61,6 +62,7 @@ export function createCharacterPreview(container: HTMLElement): VisualScene {
     ["walk", "Caminar"],
     ["aim", "Apuntar"],
     ["dodge", "Esquivar"],
+    ["melee", "Golpear"],
   ] as const) {
     const button = document.createElement("button");
     button.textContent = label;
@@ -155,6 +157,7 @@ export function createCharacterPreview(container: HTMLElement): VisualScene {
     elapsed += dt;
     try {
       pistol.visible = motion === "aim";
+      axe.visible = motion !== "aim";
       const dodging = motion === "dodge" && elapsed % 2.2 < 0.25;
       animateFarmer(
         asset.group,
@@ -162,7 +165,7 @@ export function createCharacterPreview(container: HTMLElement): VisualScene {
         asset.group.rotation.y,
         dt,
         undefined,
-        { aiming: motion === "aim", dodging },
+        { aiming: motion === "aim", dodging, melee: motion === "melee" && elapsed % 0.8 < 0.3 },
       );
       renderer.domElement.dataset.animation = motion;
       renderer.domElement.dataset.knee = asset.group

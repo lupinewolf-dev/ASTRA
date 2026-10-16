@@ -4,6 +4,7 @@ export type CharacterAction = {
   aiming?: boolean;
   dodging?: boolean;
   recoil?: number;
+  melee?: boolean;
 };
 type Pose = {
   time: number;
@@ -83,27 +84,34 @@ export function animateCharacter(
     rotate(`${label}-knee`, knee);
     rotate(`${label}-ankle`, -(hip + knee) * 0.65);
     const aiming = !!action.aiming;
+    const striking = label === "left" && !!action.melee;
     rotate(
       `${label}-arm`,
-      aiming
-        ? label === "right"
-          ? -1.05
-          : -0.25
-        : swing * forward * 0.65 - dodge * 0.45,
+      striking
+        ? -1.25
+        : aiming
+          ? label === "right"
+            ? -1.05
+            : -0.25
+          : swing * forward * 0.65 - dodge * 0.45,
       0,
-      aiming
-        ? label === "left"
-          ? 0.18
-          : -0.08
-        : sign * 0.06 + swing * side * 0.3,
+      striking
+        ? 0.35
+        : aiming
+          ? label === "left"
+            ? 0.18
+            : -0.08
+          : sign * 0.06 + swing * side * 0.3,
     );
     rotate(
       `${label}-elbow`,
-      aiming
-        ? label === "right"
-          ? -0.45
-          : -1.15
-        : -0.12 - Math.max(0, -cycle) * 0.22 * pose.stride - dodge * 0.5,
+      striking
+        ? -0.9
+        : aiming
+          ? label === "right"
+            ? -0.45
+            : -1.15
+          : -0.12 - Math.max(0, -cycle) * 0.22 * pose.stride - dodge * 0.5,
     );
     rotate(
       `${label}-wrist`,

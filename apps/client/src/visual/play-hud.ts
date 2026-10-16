@@ -5,7 +5,7 @@ export function createPlayHud(game: LocalFarmGame, scene: VisualScene) {
   const root = document.createElement("section");
   root.className = "play-hud";
   root.innerHTML =
-    '<div class="play-stats" role="status" aria-label="Estado de la granja"></div><div class="health-track" aria-hidden="true"><div></div></div><div class="play-objective"></div><div class="play-message" role="status" aria-label="Avisos"></div><div class="play-actions"><button data-action="interact"></button><button data-action="dodge">Esquiva [Espacio]</button><button data-action="craft">Balas [C]</button><button data-action="eat">Comer [H]</button><button data-action="wave">Adelantar oleada</button><button data-action="map">Ver mapa [M]</button><button data-action="pause">Pausar</button><button data-action="help">Ayuda</button></div>';
+    '<div class="play-stats" role="status" aria-label="Estado de la granja"></div><div class="health-track" aria-hidden="true"><div></div></div><div class="play-objective"></div><div class="play-message" role="status" aria-label="Avisos"></div><div class="play-actions"><button data-action="interact"></button><button data-action="shoot">Disparar [J]</button><button data-action="melee">Golpear [F]</button><button data-action="dodge">Esquiva [Espacio]</button><button data-action="craft">Balas [C]</button><button data-action="eat">Comer [H]</button><button data-action="wave">Adelantar oleada</button><button data-action="map">Ver mapa [M]</button><button data-action="pause">Pausar</button><button data-action="help">Ayuda</button></div>';
   document.body.append(root);
   const help = document.createElement("dialog");
   help.className = "demo-help";
@@ -14,9 +14,9 @@ export function createPlayHud(game: LocalFarmGame, scene: VisualScene) {
     <h1 id="demo-title">Un pequeño refugio.<br>Una noche más.</h1>
     <p>Cultivá, prepará tu equipo y defendé la granja. Tu primera misión: <strong>cosechar tres parcelas y sobrevivir una oleada</strong>.</p>
     <div class="demo-guide"><p><b>01 · Prepará</b>Acercate a una parcela y usá E o el botón de acción. La mesa junto a la casa permite fabricar balas.</p>
-    <p><b>02 · Defendé</b>Movete con WASD o flechas. Apuntá con el mouse: la pistola dispara automáticamente cuando hay enemigos cerca.</p>
+    <p><b>02 · Defendé</b>Movete con WASD o flechas. Apuntá con el mouse y hacé clic para disparar una bala. F golpea de cerca.</p>
     <p><b>03 · Esquivá</b>Espacio da un impulso en la dirección en que caminás. H permite comer y recuperar vida.</p></div>
-    <p class="demo-mobile-tip">En celular: joystick izquierdo para caminar, derecho para apuntar y botones para actuar. Giralo en horizontal para ver más terreno.</p>
+    <p class="demo-mobile-tip">En celular: joystick izquierdo para caminar, derecho para apuntar y botón Disparar para tirar una sola bala. Giralo en horizontal para ver más terreno.</p>
     <p class="demo-note">Demo local para una persona. La partida se reinicia al recargar.</p>
     <button class="demo-start" autofocus>Jugar</button>`;
   document.body.append(help);
@@ -86,6 +86,12 @@ export function createPlayHud(game: LocalFarmGame, scene: VisualScene) {
       i.stone < 2;
     button("eat").disabled = game.paused || p.hp >= 100 || i.food < 1;
     button("wave").disabled = game.paused || w.phase === "wave";
+    button("shoot").disabled =
+      game.paused ||
+      p.cooldown > 0 ||
+      i.ammo < 1 ||
+      !w.zombies.some((z) => Math.hypot(z.x - p.x, z.y - p.y) <= 8);
+    button("melee").disabled = game.paused || p.cooldown > 0;
     button("dodge").disabled = game.paused || game.dodgeCooldown > 0;
     text(
       button("dodge"),
@@ -107,6 +113,8 @@ export function createPlayHud(game: LocalFarmGame, scene: VisualScene) {
       if (action === "eat") game.eat();
       if (action === "wave") game.startWave();
       if (action === "dodge") game.dodge();
+      if (action === "shoot") scene.shoot?.();
+      if (action === "melee") scene.melee?.();
     }
     render();
   };
@@ -130,6 +138,8 @@ export function createPlayHud(game: LocalFarmGame, scene: VisualScene) {
         c: "craft",
         h: "eat",
         m: "map",
+        j: "shoot",
+        f: "melee",
         " ": "dodge",
         Escape: "pause",
       } as Record<string, string>

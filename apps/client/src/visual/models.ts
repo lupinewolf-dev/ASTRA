@@ -545,3 +545,13 @@ export function equipCharacterPistol(character: THREE.Group, kit: ModelKit) {
   socket.add(pistol);
   return pistol;
 }
+
+export function equipCharacterAxe(character: THREE.Group, kit: ModelKit) {
+  const socket = character.getObjectByName("left-wrist") as THREE.Group;
+  const axe = new THREE.Group();
+  kit.block(axe, 0x86613f, -0.08, -0.03, 0.13, 0.085, 0.58, 0.085);
+  const blade = kit.mesh(axe, kit.cone, 0x8d9b9b, -0.08, 0.23, 0.13, 0.23, 0.33, 0.11);
+  blade.rotation.z = Math.PI / 2;
+  socket.add(axe);
+  return axe;
+}

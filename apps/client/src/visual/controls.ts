@@ -153,10 +153,15 @@ export function bindWalking(scene: VisualScene): () => void {
   const aimRelease = (event: PointerEvent) => {
     if (event.pointerId === aimPointer) aimReset();
   };
-  const canvas = document.querySelector("#visual-scene canvas")!;
+  const canvas = document.querySelector<HTMLCanvasElement>("#visual-scene canvas")!;
   const mouseAim = (event: Event) => {
     const e = event as PointerEvent;
     if (e.pointerType !== "touch") scene.aimAt?.(e.clientX, e.clientY);
+  };
+  const manualShot = (event: PointerEvent) => {
+    if (event.button !== 0 || dead) return;
+    scene.aimAt?.(event.clientX, event.clientY);
+    scene.shoot?.();
   };
   const mouseLeave = (event: Event) => {
     if ((event as PointerEvent).pointerType !== "touch") aimReset();
@@ -167,6 +172,7 @@ export function bindWalking(scene: VisualScene): () => void {
   aimStick.addEventListener("pointercancel", aimRelease);
   aimStick.addEventListener("lostpointercapture", aimRelease);
   canvas.addEventListener("pointermove", mouseAim);
+  canvas.addEventListener("pointerdown", manualShot);
   canvas.addEventListener("pointerleave", mouseLeave);
   window.addEventListener("blur", aimReset);
   window.addEventListener("pagehide", aimReset);
@@ -177,6 +183,7 @@ export function bindWalking(scene: VisualScene): () => void {
     aimReset();
     aimStick.remove();
     canvas.removeEventListener("pointermove", mouseAim);
+    canvas.removeEventListener("pointerdown", manualShot);
     canvas.removeEventListener("pointerleave", mouseLeave);
     window.removeEventListener("blur", aimReset);
     window.removeEventListener("pagehide", aimReset);

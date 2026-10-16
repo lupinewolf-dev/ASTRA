@@ -8,6 +8,7 @@ import "./visual/visual.css";
 declare global {
   interface Window {
     astraVisual?: {
+      game?: LocalFarmGame;
       worldUnchanged: boolean;
       disposed(): boolean;
       dispose(): void;
@@ -31,6 +32,7 @@ world.crops.forEach((crop, i) =>
 const before = JSON.stringify(world);
 let scene: VisualScene | undefined,
   disposed = false;
+let gameForTests: LocalFarmGame | undefined;
 let unbindWalking: (() => void) | undefined;
 let hud: ReturnType<typeof createPlayHud> | undefined;
 const dispose = () => {
@@ -65,11 +67,12 @@ try {
     document.querySelector(".badge")!.textContent =
       "PERSONAJE · MODELO 3D REAL";
     document.querySelector("footer p")!.textContent =
-      "Modelo articulado · Probá reposo, caminata, apuntado y esquiva";
+      "Modelo articulado · Probá reposo, caminata, apuntado, esquiva y golpe";
     document.title = "ASTRA · Revisión de personaje";
     scene = createCharacterPreview(container);
   } else {
     const game = new LocalFarmGame(world);
+    gameForTests = game;
     if (new URLSearchParams(location.search).get("demo") === "1") {
       const link = document.querySelector<HTMLAnchorElement>("header a")!;
       link.href = "?demo=1";
@@ -78,7 +81,7 @@ try {
     document.body.classList.add("playing");
     document.querySelector(".badge")!.textContent = "GRANJA JUGABLE · LOCAL";
     document.querySelector("footer p")!.textContent =
-      "WASD / flechas: mover · E: acción · Mouse o joystick derecho: apuntar";
+      "WASD / flechas: mover · E: acción · Mouse o joystick derecho: apuntar · Clic/J: disparar";
     document.title = "ASTRA · Granja jugable";
     scene = createVisualScene(container, game.world, game, () => hud?.render());
     hud = createPlayHud(game, scene);
@@ -89,6 +92,7 @@ try {
   window.addEventListener("pageshow", show);
   if ((import.meta as unknown as { env: { MODE: string } }).env.MODE === "test")
     window.astraVisual = {
+      game: gameForTests,
       worldUnchanged: before === JSON.stringify(world),
       disposed: () => disposed,
       dispose,

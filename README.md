@@ -13,7 +13,7 @@ npm.cmd run dev
 
 Abre **http://localhost:5173/visual.html?demo=1** y pulsa Jugar. Mantén la terminal abierta. Para celular usa la IP de la PC, puerto 5173 y la misma ruta, desde la misma Wi-Fi.
 
-Esta demo es **local, para una persona y sin guardado**. [Controles y guía](docs/art/jugable.md).
+Esta demo es **local, para una persona y sin guardado**. En `/visual.html?demo=1`, el disparo es manual (clic/J o botón móvil), el golpe cercano usa F y el sector este agrega un pozo, provisiones y recursos. [Controles y guía](docs/art/jugable.md).
 
 El paquete compilado `ASTRA-demo.zip` y su lanzador se retiraron tras una detección de Microsoft Defender reportada por el usuario. La causa no está determinada y el código fuente no cuenta con una certificación antivirus. No restaures el paquete bloqueado ni omitas una alerta si aparece al descargar el código.
 
@@ -75,11 +75,11 @@ Gráficos originales provisionales generados con figuras. El navegador emulado n
 
 Con `npm.cmd run dev` activo, abre `http://localhost:5173/visual.html` en PC. En celular, usa la dirección de tu PC en la misma Wi-Fi y añade `/visual.html`.
 
-Esta prueba permite recorrer un mapa de unas 30 × 28 unidades, cosechar, sembrar, regar, recoger madera/piedra/provisiones, fabricar balas, comer y defenderse de oleadas progresivas. El objetivo inicial es cosechar tres parcelas y sobrevivir una oleada. Las cercas bloquean, reciben daño y se pueden reparar. La cámara sigue al personaje; **M / Ver mapa** muestra el terreno completo.
+Esta prueba permite recorrer un mapa de unas 44 × 30 unidades, cosechar, sembrar, regar, recoger madera/piedra/provisiones, fabricar balas, comer y defenderse de oleadas progresivas. El objetivo inicial es cosechar tres parcelas y sobrevivir una oleada. Las cercas bloquean, reciben daño y se pueden reparar. La cámara sigue al personaje; **M / Ver mapa** muestra el terreno completo.
 
-- PC: **WASD/flechas** para moverte, **E** para la acción cercana, **C** para fabricar balas en la mesa frente a la casa, **H** para comer, mouse para apuntar y disparar automáticamente cuando hay enemigos a alcance.
-- Celular: joystick izquierdo para moverte, derecho para apuntar y botones de acción; admite dos dedos simultáneos y ambas orientaciones.
-- Los cultivos regados tardan 45 segundos. Las oleadas llegan cada 90 segundos; **Adelantar oleada** permite probar la defensa sin esperar. Al quedarse sin balas se usa el ataque cercano.
+- PC: **WASD/flechas** para moverte, **E** para la acción cercana, **C** para fabricar balas en la mesa frente a la casa, **H** para comer, mouse para apuntar, clic izquierdo o **J** para disparar una bala y **F** para golpear.
+- Celular: joystick izquierdo para moverte, derecho para apuntar y botones **Disparar**, **Golpear** y de acción; admite dos dedos simultáneos y ambas orientaciones.
+- Los cultivos regados tardan 45 segundos. Las oleadas llegan cada 90 segundos; **Adelantar oleada** permite probar la defensa sin esperar. El golpe cercano se usa con F o su botón, incluso sin balas.
 - Se pausa al ocultar la página, cambiar de ventana o usar **Pausar**. Recargar reinicia esta prueba local; todavía no tiene guardado ni multijugador. El juego cooperativo anterior sigue en `/`.
 
 [Guía y capturas reales](docs/art/jugable.md). El visor del personaje sigue en `/visual.html?personaje=1`.
